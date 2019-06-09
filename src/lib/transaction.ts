@@ -62,7 +62,7 @@ function createSignMessage(jsonTx, { sequence, account_number, chain_id }) {
 }
 
 // produces the signature for a message (returns Buffer)
-function signWithPrivateKey(signMessage, privateKey) {
+function signWithPrivateKey(signMessage, privateKey): Buffer {
   const signHash = Buffer.from(sha256(signMessage).toString(), `hex`)
   const { signature } = secp256k1.sign(signHash, Buffer.from(privateKey, `hex`))
   return signature
@@ -74,7 +74,7 @@ function createSignature(signature, sequence, accountNumber, publicKey) {
     account_number: accountNumber,
     sequence,
     pub_key: {
-      type: `tendermint/PubKeySecp256k1`, // TODO: allow other keytypes
+      type: `tendermint/PubKeySecp256k1`,
       value: publicKey.toString(`base64`)
     }
   }
@@ -83,7 +83,7 @@ function createSignature(signature, sequence, accountNumber, publicKey) {
 // main function to get a signature from ledger or local keystore
 export async function sign(
   ledger,
-  voter,
+  fromKey,
   tx,
   baseRequest: {
     chain_id: string
@@ -104,22 +104,19 @@ export async function sign(
     const signature = signatureByteArray[`signature`]
     const signatureBuffer = secp256k1.signatureImport(signature)
 
-    return createSignature(signatureBuffer, baseRequest.sequence, baseRequest.account_number, voter.publicKey)
+    return createSignature(signatureBuffer, baseRequest.sequence, baseRequest.account_number, fromKey.publicKey)
   }
 
-  // Use private key for signing
-  const { sequence, account_number } = baseRequest
+  // Use keystore for signing
   const signMessage = createSignMessage(tx, baseRequest)
-  const signatureBuffer = signWithPrivateKey(signMessage, voter.privateKey)
-  const pubKeyBuffer = Buffer.from(voter.publicKey, `hex`)
-  return createSignature(signatureBuffer, sequence, account_number, pubKeyBuffer)
+  const signatureBuffer = signWithPrivateKey(signMessage, fromKey.privateKey)
+  const pubKeyBuffer = Buffer.from(fromKey.publicKey, `hex`)
+  return createSignature(signatureBuffer, baseRequest.sequence, baseRequest.account_number, pubKeyBuffer)
 }
 
 // adds the signature object to the tx
-export function createSignedTx(tx, signature) {
-  return Object.assign({}, tx, {
-    signatures: [signature]
-  })
+export function assignSignature(tx, signature) {
+  return Object.assign(tx, { signatures: [signature] })
 }
 
 // the broadcast body consists of the signed tx and a return type

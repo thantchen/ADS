@@ -25,8 +25,8 @@ function encrypt(plainText: string, password: string) {
   return salt.toString() + iv.toString() + encrypted.toString()
 }
 
-export async function create(db, chainName: string, name: string, password: string) {
-  const wallet = await keyUtils.createWalletFromMnemonic(chainName, keyUtils.generateMnemonic())
+export async function create(db, chainName: string, name: string, password: string, mnemonic?: string) {
+  const wallet = await keyUtils.createWalletFromMnemonic(chainName, mnemonic || keyUtils.generateMnemonic())
   const ciphertext = encrypt(JSON.stringify(wallet), password)
 
   await db.put(name, ciphertext)

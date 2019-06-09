@@ -4,6 +4,7 @@ import * as sentry from '@sentry/node'
 import * as polka from 'polka'
 import { json } from 'body-parser'
 import * as config from 'config'
+import claim from 'controllers/claim';
 
 Bluebird.config({
   longStackTraces: true
@@ -22,6 +23,8 @@ app.use(json())
 app.get('/health', (req, res) => {
   res.end('OK')
 })
+
+app.use('/claim', claim);
 
 if (require.main === module) {
   const server = http.createServer(app.handler)

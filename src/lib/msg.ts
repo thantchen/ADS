@@ -23,13 +23,13 @@ export function generateVoteHash(salt: string, price: string, denom: string, vot
   return hash.slice(0, 40)
 }
 
-export function generateStdTx(msgs: object[], fee: object, memo: string) {
+export function generateStdTx(msg: object[], fee: object, memo: string) {
   return {
     type: 'auth/StdTx',
     value: {
       fee,
       memo,
-      msg: msgs,
+      msg,
       signatures: null
     }
   }
@@ -56,6 +56,35 @@ export function generateVoteMsg(price: string, salt: string, denom: string, feed
       denom,
       feeder,
       validator
+    }
+  }
+}
+
+export function generateClaimMsg(amount: string, userAddress: string, lpAddress: string, fromAddress: string) {
+  return {
+    type: 'claim/ClaimFunds',
+    value: {
+      amount: {
+        amount,
+        denom: 'don',
+      },
+      receiver_address: userAddress,
+      target_address: lpAddress,
+      from_address: fromAddress
+    }
+  }
+}
+
+export function generateSendMsg(amount: string, fromAddress: string, toAddress: string) {
+  return {
+    type: 'cosmos-sdk/MsgSend',
+    value: {
+      amount: [{
+        amount,
+        denom: 'don',
+      }],
+      from_address: fromAddress,
+      to_address: toAddress
     }
   }
 }
