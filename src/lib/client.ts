@@ -1,4 +1,5 @@
 import * as http from 'http'
+import * as https from 'https'
 import * as util from 'util'
 import axios from 'axios'
 
@@ -7,6 +8,7 @@ const ENDPOINT_TX_BROADCAST = `/txs`
 
 const ax = axios.create({
   httpAgent: new http.Agent({ keepAlive: true }),
+  httpsAgent: new https.Agent({ keepAlive: true }),
   timeout: 15000
 })
 
@@ -28,8 +30,6 @@ export async function queryAccount({ lcdAddress, address }) {
 }
 
 export async function broadcast({ lcdAddress, account, body }): Promise<number> {
-  console.log(account)
-
   // Send broadcast
   const { data } = await ax.post(lcdAddress + ENDPOINT_TX_BROADCAST, body).catch(e => {
     if (e.response) return e.response

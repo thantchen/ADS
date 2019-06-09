@@ -1,5 +1,5 @@
 import * as level from 'level'
-import { generateClaimMsg, generateStdTx, generateSendMsg } from 'lib/msg'
+import { generateClaim, generateStdTx, generateSend } from 'lib/msg'
 import * as transaction from 'lib/transaction'
 import * as keystore from 'lib/keystore'
 import * as client from 'lib/client'
@@ -7,7 +7,7 @@ import * as client from 'lib/client'
 const db = level('data/tempura')
 
 describe('claim', () => {
-  const msg = generateClaimMsg(
+  const msg = generateClaim(
     '1000',
     'tempura1wunufyfntxzkqaluvwjeudd7rt4c4cc96szp4v',
     'tempura1eml8cxegk7zuxz3k6z5rwtvctmh8kj8md2yxe4',
@@ -645,7 +645,7 @@ describe('send', () => {
     const { value: tx } = generateStdTx(
       testAccounts
         .filter(acc => acc.name.startsWith('user'))
-        .map(acc => generateSendMsg('10000', valKey.address, acc.address)),
+        .map(acc => generateSend('10000', valKey.address, acc.address)),
       { gas: '5000000', amount: [] },
       ''
     )

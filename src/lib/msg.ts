@@ -47,7 +47,7 @@ export function generatePrevoteMsg(hash: string, denom: string, feeder: string, 
   }
 }
 
-export function generateVoteMsg(price: string, salt: string, denom: string, feeder: string, validator: string) {
+export function generateVote(price: string, salt: string, denom: string, feeder: string, validator: string) {
   return {
     type: 'oracle/MsgPriceVote',
     value: {
@@ -60,7 +60,7 @@ export function generateVoteMsg(price: string, salt: string, denom: string, feed
   }
 }
 
-export function generateClaimMsg(amount: string, userAddress: string, lpAddress: string, fromAddress: string) {
+export function generateClaim(amount: string, userAddress: string, lpAddress: string, fromAddress: string) {
   return {
     type: 'claim/ClaimFunds',
     value: {
@@ -75,7 +75,7 @@ export function generateClaimMsg(amount: string, userAddress: string, lpAddress:
   }
 }
 
-export function generateSendMsg(amount: string, fromAddress: string, toAddress: string) {
+export function generateSend(amount: string, fromAddress: string, toAddress: string) {
   return {
     type: 'cosmos-sdk/MsgSend',
     value: {
@@ -85,6 +85,26 @@ export function generateSendMsg(amount: string, fromAddress: string, toAddress: 
       }],
       from_address: fromAddress,
       to_address: toAddress
+    }
+  }
+}
+
+interface Coin {
+  denom: string;
+  amount: string;
+}
+
+interface InOut {
+  address: string;
+  coins: Coin[];
+}
+
+export function generateMultiSend(inputs: InOut[], outputs: InOut[]) {
+  return {
+    type: 'pay/MsgMultiSend',
+    value: {
+      inputs,
+      outputs
     }
   }
 }
