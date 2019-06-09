@@ -4,8 +4,8 @@ import * as config from 'config'
 const redis = new IORedis(config.redis)
 
 export class Queue {
-  static async push(queueName: string, data: object) {
-    return redis.rpush(queueName, JSON.stringify(data))
+  static async push(queueName: string, ...values: any[]) {
+    return redis.rpush(queueName, ...values.map(v => JSON.stringify(v)))
   }
 
   static async pop(queueName: string) {
@@ -13,7 +13,8 @@ export class Queue {
   }
 
   static async peek(queueName: string, limit: number) {
-    return redis.lrange(queueName, 0, limit - 1).then(arr => arr.map(JSON.parse))
+    const values = await redis.lrange(queueName, 0, limit - 1)
+    return values.map(v => v && JSON.parse(v)).filter(Boolean)
   }
 
   static async trim(queueName: string, limit: number) {

@@ -18,9 +18,18 @@ describe('redis', () => {
   })
 
   test('multiple push', async () => {
-    for (let i = 0; i < 10; i += 1) {
-      await Queue.push('test_queue', { userId: '1234', amount: '4321' })
-    }
+    await Queue.push('test_queue',
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' },
+      { userId: '1234', amount: '4321' }
+    );
 
     let list = await Queue.peek('test_queue', 10);
 
