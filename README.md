@@ -73,6 +73,6 @@ $ ts-node -r tsconfig-paths/register src/batchTempura.ts \
 
 ## Technical Notes
 * keystore 엔진은 LevelDB 사용 (위치: data/terra, data/tempura)
-* 테라 월렛은 Id로 찾고 없으면 생성한다
+* 테라 월렛은 userId 찾고 없으면 생성한다
 * 니모닉은 별도로 저장하지 않는다
 * Terra LP > Terra User(s) > Terra LP 전송 후 1ukrw가 남을 수 있음
