@@ -290,7 +290,7 @@ async function main() {
     required: true
   })
 
-  parser.addArgument(['-l', '--lcd'], {
+  parser.addArgument(['--lcd'], {
     help: 'lcd address',
     dest: 'lcdAddress',
     required: true

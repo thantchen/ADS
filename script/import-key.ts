@@ -40,13 +40,7 @@ async function main() {
 
   const db = level(config.db[args.chain_name].path)
 
-  await keystore.create(
-    db,
-    args.chain_name,
-    args.key,
-    password,
-    mnemonic
-  )
+  await keystore.create(db, args.chain_name, args.key, password, mnemonic)
 
   await db.close()
 }

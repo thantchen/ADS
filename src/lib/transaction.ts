@@ -69,12 +69,12 @@ function signWithPrivateKey(signMessage, privateKey): Buffer {
 }
 
 interface Signature {
-  signature: string;
-  account_number: string;
-  sequence: string;
+  signature: string
+  account_number: string
+  sequence: string
   pub_key: {
-    type: string;
-    value: string;
+    type: string
+    value: string
   }
 }
 

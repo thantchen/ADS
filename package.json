@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/server.ts",
   "scripts": {
-    "prettier": "prettier --write '{src,script}/**/*.ts'",
+    "prettier": "prettier --write '{src,script,config}/**/*.{ts,js}'",
     "lint": "tslint -p . -c tslint.json",
     "dev": "nodemon --signal SIGINT --exec node --stack_size=4096 --max-old-space-size=4096 -r ts-node/register -r tsconfig-paths/register src/server.ts",
     "debug": "nodemon --signal SIGINT --exec node --stack_size=4096 --max-old-space-size=4096 --inspect-brk=9339 -r ts-node/register -r tsconfig-paths/register src/server.ts",
@@ -59,7 +59,7 @@
     }
   },
   "lint-staged": {
-    "{src,script}/**/*.ts": [
+    "{src,script,config}/**/*.{ts,js}": [
       "prettier --write",
       "tslint -p .",
       "git add"

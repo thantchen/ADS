@@ -55,12 +55,12 @@ async function batchQueue() {
   const values = candidateValues.slice(0, sliceIndex)
 
   // amount 한번에 합쳐서 send하기 위해 합 구하기
-  const sum = values.reduce((acc, curr) => (acc + +curr.amount), 0)
+  const sum = values.reduce((acc, curr) => acc + +curr.amount, 0)
 
   // Get LP key and query account for account_number and sequence
   const [lpKey, chaiKey] = await Promise.all([
     keystore.get(tempuraDB, args.lpName, args.lpPassword),
-    keystore.get(tempuraDB, args.chaiName, args.chaiPassword),
+    keystore.get(tempuraDB, args.chaiName, args.chaiPassword)
   ])
 
   const [lpAccount, chaiAccount] = await Promise.all([
@@ -91,11 +91,13 @@ async function batchQueue() {
     memo
   )
 
-  tx.signatures.push(await transaction.sign(null, fromKey, tx, {
-    chain_id: 'testing',
-    account_number: fromAccount.account_number,
-    sequence: fromAccount.sequence
-  }))
+  tx.signatures.push(
+    await transaction.sign(null, fromKey, tx, {
+      chain_id: 'testing',
+      account_number: fromAccount.account_number,
+      sequence: fromAccount.sequence
+    })
+  )
 
   const body = transaction.createBroadcastBody(tx, 'block')
   const height = await client.broadcast(args.lcdAddress, lpAccount, body)
@@ -128,7 +130,7 @@ async function main() {
     required: true
   })
 
-  parser.addArgument(['-l', '--lcd'], {
+  parser.addArgument(['--lcd'], {
     help: 'lcd address',
     dest: 'lcdAddress',
     required: true

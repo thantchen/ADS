@@ -60,7 +60,7 @@ export async function broadcast(lcdAddress, account, body): Promise<number> {
   } else if (data.error) {
     console.error('broadcast raised an error:', data.error)
 
-    try { 
+    try {
       const error = JSON.parse(data.error)
 
       if (error.code !== 4) {

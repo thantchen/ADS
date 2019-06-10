@@ -1,7 +1,7 @@
 import * as polka from 'polka'
 import { Queue } from 'redis'
 import * as validateUUID from 'uuid-validate'
-import { success, error } from 'lib/response'
+import { success } from 'lib/response'
 import { APIError } from 'lib/error'
 import * as uuid from 'uuid'
 
