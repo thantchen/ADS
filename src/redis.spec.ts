@@ -1,4 +1,4 @@
-import redis, { Queue } from 'redis';
+import redis, { Queue } from 'redis'
 
 describe('redis', () => {
   beforeAll(async done => {
@@ -18,7 +18,8 @@ describe('redis', () => {
   })
 
   test('multiple push', async () => {
-    await Queue.push('test_queue',
+    await Queue.push(
+      'test_queue',
       { userId: '1234', amount: '4321' },
       { userId: '1234', amount: '4321' },
       { userId: '1234', amount: '4321' },
@@ -29,9 +30,9 @@ describe('redis', () => {
       { userId: '1234', amount: '4321' },
       { userId: '1234', amount: '4321' },
       { userId: '1234', amount: '4321' }
-    );
+    )
 
-    let list = await Queue.peek('test_queue', 10);
+    let list = await Queue.peek('test_queue', 10)
 
     expect(Array.isArray(list)).toBe(true)
     expect(list.length).toBe(10)

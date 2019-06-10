@@ -4,11 +4,12 @@
   "description": "",
   "main": "src/server.ts",
   "scripts": {
-    "prettier": "prettier --write './src/**/*.ts'",
+    "prettier": "prettier --write '{src,script}/**/*.ts'",
     "lint": "tslint -p . -c tslint.json",
     "dev": "nodemon --signal SIGINT --exec node --stack_size=4096 --max-old-space-size=4096 -r ts-node/register -r tsconfig-paths/register src/server.ts",
     "debug": "nodemon --signal SIGINT --exec node --stack_size=4096 --max-old-space-size=4096 --inspect-brk=9339 -r ts-node/register -r tsconfig-paths/register src/server.ts",
     "start": "node --stack_size=4096 --max-old-space-size=4096 -r ts-node/register/transpile-only -r tsconfig-paths/register src/server.ts",
+    "import-key": "node --stack_size=4096 --max-old-space-size=4096 -r ts-node/register/transpile-only -r tsconfig-paths/register script/import-key.ts",
     "test": "jest",
     "build": "rimraf ./dist && tsc"
   },
@@ -31,21 +32,37 @@
     "ioredis": "^4.10.0",
     "ledger-cosmos-js": "^2.0.2",
     "level": "^5.0.1",
+    "lodash": "^4.17.11",
     "polka": "^0.5.2",
     "secp256k1": "^3.7.1",
     "ts-node": "^8.2.0",
     "tsconfig-paths": "^3.8.0",
-    "typescript": "^3.5.1"
+    "typescript": "^3.5.1",
+    "uuid-validate": "^0.0.3"
   },
   "devDependencies": {
     "@types/jest": "^24.0.13",
+    "argparse": "^1.0.10",
     "jest": "^24.8.0",
     "nodemon": "^1.19.1",
     "prettier": "^1.18.2",
+    "promptly": "^3.0.3",
     "rimraf": "^2.6.3",
     "ts-jest": "^24.0.2",
     "tslint": "^5.17.0",
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.18.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "{src,script}/**/*.ts": [
+      "prettier --write",
+      "tslint -p .",
+      "git add"
+    ]
   }
 }

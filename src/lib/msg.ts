@@ -66,7 +66,7 @@ export function generateClaim(amount: string, userAddress: string, lpAddress: st
     value: {
       amount: {
         amount,
-        denom: 'don',
+        denom: 'don'
       },
       receiver_address: userAddress,
       target_address: lpAddress,
@@ -79,10 +79,12 @@ export function generateSend(amount: string, fromAddress: string, toAddress: str
   return {
     type: 'cosmos-sdk/MsgSend',
     value: {
-      amount: [{
-        amount,
-        denom: 'don',
-      }],
+      amount: [
+        {
+          amount,
+          denom: 'don'
+        }
+      ],
       from_address: fromAddress,
       to_address: toAddress
     }
@@ -90,13 +92,13 @@ export function generateSend(amount: string, fromAddress: string, toAddress: str
 }
 
 interface Coin {
-  denom: string;
-  amount: string;
+  denom: string
+  amount: string
 }
 
 interface InOut {
-  address: string;
-  coins: Coin[];
+  address: string
+  coins: Coin[]
 }
 
 export function generateMultiSend(inputs: InOut[], outputs: InOut[]) {
