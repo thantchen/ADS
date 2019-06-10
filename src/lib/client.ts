@@ -12,7 +12,7 @@ const ax = axios.create({
   timeout: 15000
 })
 
-export async function queryAccount({ lcdAddress, address }) {
+export async function queryAccount(lcdAddress, address) {
   const url = util.format(lcdAddress + ENDPOINT_QUERY_ACCOUNT, address)
   const res = await ax.get(url)
 
@@ -30,7 +30,7 @@ export async function queryAccount({ lcdAddress, address }) {
   return account
 }
 
-export async function queryTaxRate({ lcdAddress }) {
+export async function queryTaxRate(lcdAddress) {
   const { data } = await ax.get(`${lcdAddress}/treasury/tax-rate`)
 
   if (Number.isNaN(+data)) {
@@ -40,7 +40,7 @@ export async function queryTaxRate({ lcdAddress }) {
   return +data
 }
 
-export async function broadcast({ lcdAddress, account, body }): Promise<number> {
+export async function broadcast(lcdAddress, account, body): Promise<number> {
   // Send broadcast
   const { data } = await ax.post(lcdAddress + ENDPOINT_TX_BROADCAST, body).catch(e => {
     if (e.response) return e.response

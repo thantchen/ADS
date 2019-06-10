@@ -1,7 +1,8 @@
 import * as promptly from 'promptly'
 import { ArgumentParser } from 'argparse'
+import * as level from 'level'
+import * as config from 'config'
 import * as keystore from 'lib/keystore'
-import { terraDB, tempuraDB } from 'database'
 
 // To run use `yarn import-key <...options>`
 async function main() {
@@ -37,15 +38,17 @@ async function main() {
 
   const mnemonic = await promptly.prompt(`Enter bip39 mnemonic for ${args.key}: `)
 
+  const db = level(config.db[args.chain_name].path)
+
   await keystore.create(
-    args.chain_name === 'terra' ? terraDB : tempuraDB,
+    db,
     args.chain_name,
     args.key,
     password,
     mnemonic
   )
-  await terraDB.close()
-  await tempuraDB.close()
+
+  await db.close()
 }
 
 main().catch(console.error)
