@@ -68,7 +68,17 @@ function signWithPrivateKey(signMessage, privateKey): Buffer {
   return signature
 }
 
-function createSignature(signature, sequence, accountNumber, publicKey) {
+interface Signature {
+  signature: string;
+  account_number: string;
+  sequence: string;
+  pub_key: {
+    type: string;
+    value: string;
+  }
+}
+
+function createSignature(signature, sequence, accountNumber, publicKey): Signature {
   return {
     signature: signature.toString(`base64`),
     account_number: accountNumber,
@@ -90,7 +100,7 @@ export async function sign(
     sequence: string
     account_number: string
   }
-) {
+): Promise<Signature> {
   // Use ledger for signing
   if (ledger) {
     const signMessage = createSignMessage(tx, baseRequest)
@@ -115,8 +125,8 @@ export async function sign(
 }
 
 // adds the signature object to the tx
-export function assignSignature(tx, signature) {
-  return Object.assign(tx, { signatures: [signature] })
+export function assignSignature(tx, ...signatures) {
+  return Object.assign(tx, { signatures })
 }
 
 // the broadcast body consists of the signed tx and a return type

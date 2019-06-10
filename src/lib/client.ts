@@ -14,19 +14,30 @@ const ax = axios.create({
 
 export async function queryAccount({ lcdAddress, address }) {
   const url = util.format(lcdAddress + ENDPOINT_QUERY_ACCOUNT, address)
-  console.info(`querying: ${url}`)
-
-  const res = await ax.get(url).catch(e => {
-    console.error(`Failed to bringing account number and sequence: ${e.toString()}`)
-    return
-  })
+  const res = await ax.get(url)
 
   if (!res || res.status !== 200) {
     if (res) console.error(`Failed to bringing account number and sequence: ${res.statusText}`)
-    return
+    throw new Error('status not 200')
   }
 
-  return res.data.value
+  const account = res.data.value
+
+  if (account.address === '') {
+    account.address = address
+  }
+
+  return account
+}
+
+export async function queryTaxRate({ lcdAddress }) {
+  const { data } = await ax.get(`${lcdAddress}/treasury/tax-rate`)
+
+  if (Number.isNaN(+data)) {
+    throw new Error('invalid tax rate response')
+  }
+
+  return +data
 }
 
 export async function broadcast({ lcdAddress, account, body }): Promise<number> {
@@ -41,14 +52,28 @@ export async function broadcast({ lcdAddress, account, body }): Promise<number> 
     return 0
   }
 
+  let height = 0
+
   if (data.logs && !data.logs[0].success) {
     console.error('broadcast sent, but failed:', data.logs)
+    account.sequence = (parseInt(account.sequence, 10) + 1).toString()
   } else if (data.error) {
     console.error('broadcast raised an error:', data.error)
+
+    try { 
+      const error = JSON.parse(data.error)
+
+      if (error.code !== 4) {
+        throw new Error(error.message)
+      }
+    } catch (err) {
+      throw err
+    }
   } else {
     console.info(`txhash: ${data.txhash}`)
+    height = +data.height
+    account.sequence = (parseInt(account.sequence, 10) + 1).toString()
   }
 
-  account.sequence = (parseInt(account.sequence, 10) + 1).toString()
-  return +data.height
+  return height
 }
