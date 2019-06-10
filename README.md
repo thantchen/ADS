@@ -1,5 +1,8 @@
 # LP Server
 
+## Highlight
+* 문제 생겨도 중복 전송 또는 유실되지 않도록 FIFO Queue 처리
+
 ## Requirements
 * Node.js (TypeScript)
 * Redis Server for Queue
