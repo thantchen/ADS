@@ -36,7 +36,7 @@ describe('terra', () => {
     )
 
     const key = await keystore.get(db, 'faucet', '12345678')
-    const account = await client.queryAccount({ lcdAddress, address: key.address })
+    const account = await client.queryAccount(lcdAddress, key.address)
 
     const signature = await transaction.sign(null, key, tx, {
       chain_id: chainId,
@@ -45,13 +45,13 @@ describe('terra', () => {
     })
 
     transaction.assignSignature(tx, signature)
-    const body = transaction.createBroadcastBody(tx, 'block')
+    const body = transaction.createBroadcastBody(tx)
 
-    const height = await client.broadcast({
+    const height = await client.broadcast(
       lcdAddress,
       account,
       body
-    })
+    )
 
     expect(height).toBeGreaterThan(0)
   })

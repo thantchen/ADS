@@ -25,7 +25,7 @@ const lcdAddress = 'http://localhost:2317'
 
 terraDB
   .createReadStream()
-  .on('data', async function(data) {
+  .on('data', async data => {
     if (validateUUID(data.key)) {
       const password = CryptoJS.SHA256(data.key)
       const toKey = await keystore.get(terraDB, 'LP', 'aCDurbvGahhwz=4Jpns8MEUT')
@@ -60,7 +60,7 @@ terraDB
           })
         )
 
-        const body = transaction.createBroadcastBody(tx, 'block')
+        const body = transaction.createBroadcastBody(tx)
         const height = await client.broadcast(lcdAddress, fromAccount, body)
 
         console.log(height)
@@ -68,12 +68,12 @@ terraDB
       }
     }
   })
-  .on('error', function(err) {
+  .on('error', err => {
     console.log('Oh my!', err)
   })
-  .on('close', async function() {
+  .on('close', () => {
     console.log('Stream closed')
   })
-  .on('end', function() {
+  .on('end', () => {
     console.log('Stream ended')
   })

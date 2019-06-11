@@ -46,7 +46,6 @@ async function batchQueue() {
 
   // 다른 denom이 나오면 중지한다
   for (let i = 1; i < candidateValues.length; i += 1) {
-    console.log(candidateValues[i])
     if (candidateValues[i].denom !== firstDenom) break
     sliceIndex += 1
   }
@@ -99,7 +98,7 @@ async function batchQueue() {
     })
   )
 
-  const body = transaction.createBroadcastBody(tx, 'block')
+  const body = transaction.createBroadcastBody(tx)
   const height = await client.broadcast(args.lcdAddress, lpAccount, body)
 
   console.log(`height ${height}, sequence: ${lpAccount.sequence}`)

@@ -637,10 +637,10 @@ describe('send', () => {
     const valKey = await keystore.get(db, 'chai', '12345678')
 
     // query account for account_number and sequence
-    const account = await client.queryAccount({
-      lcdAddress: 'http://localhost:1317',
-      address: valKey.address
-    })
+    const account = await client.queryAccount(
+      'http://localhost:1317',
+      valKey.address
+    )
 
     const { value: tx } = generateStdTx(
       testAccounts
@@ -656,13 +656,13 @@ describe('send', () => {
     })
 
     transaction.assignSignature(tx, signature)
-    const body = transaction.createBroadcastBody(tx, 'block')
+    const body = transaction.createBroadcastBody(tx)
 
-    const height = await client.broadcast({
-      lcdAddress: 'http://localhost:1317',
+    const height = await client.broadcast(
+      'http://localhost:1317',
       account,
       body
-    })
+    )
 
     expect(height).toBeGreaterThan(0)
   }, 15000)
