@@ -2,6 +2,8 @@ import * as http from 'http'
 import * as https from 'https'
 import * as util from 'util'
 import axios from 'axios'
+import delay from 'delay'
+import { consoleSandbox } from '@sentry/utils'
 
 const ENDPOINT_QUERY_ACCOUNT = '/auth/accounts/%s'
 const ENDPOINT_TX_BROADCAST = `/txs`
@@ -40,39 +42,47 @@ export async function queryTaxRate(lcdAddress) {
   return +data
 }
 
-export async function broadcast(lcdAddress, account, body): Promise<number> {
+export async function queryTx(lcdAddress: string, txHash: string) {
+  const { data } = await ax.get(`${lcdAddress}/txs/${txHash}`)
+
+  if (!data || Number.isNaN(+data.height)) {
+    return data
+  }
+}
+
+export async function broadcast(lcdAddress: string, account: { sequence: string }, body: any): Promise<number> {
   // Send broadcast
   const { data } = await ax.post(lcdAddress + ENDPOINT_TX_BROADCAST, body).catch(e => {
     if (e.response) return e.response
     throw e
   })
 
-  if (data.code !== undefined) {
-    console.error('broadcast failed:', data.logs)
-    return 0
-  }
+  const AVERAGE_BLOCK_TIME = 6000
+  const MAX_RETRY_COUNT = 3
 
-  let height = 0
-
-  if (data.logs && !data.logs[0].success) {
-    console.error('broadcast sent, but failed:', data.logs)
-    account.sequence = (parseInt(account.sequence, 10) + 1).toString()
-  } else if (data.error) {
-    console.error('broadcast raised an error:', data.error)
-
+  for (let i = 0; i < MAX_RETRY_COUNT; i += 1) {
     try {
-      const error = JSON.parse(data.error)
+      // Wait block time
+      await delay(AVERAGE_BLOCK_TIME)
 
-      if (error.code !== 4) {
-        throw new Error(error.message)
+      const tx = await queryTx(lcdAddress, data.txhash)
+
+      let height = 0
+
+      if (tx.logs && !tx.logs[0].success) {
+        console.error('broadcast sent, but failed:', tx.logs)
+      } else {
+        console.info(`txhash: ${tx.txhash}`)
+        height = +tx.height
       }
-    } catch (e) {
+
+      account.sequence = (parseInt(account.sequence, 10) + 1).toString()
+      return height
+    } catch {
+      // Wait block time
+      console.info(`tx not found yet`)
     }
-  } else {
-    console.info(`txhash: ${data.txhash}`)
-    height = +data.height
-    account.sequence = (parseInt(account.sequence, 10) + 1).toString()
   }
 
-  return height
+  return 0
 }

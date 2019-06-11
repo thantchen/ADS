@@ -23,8 +23,9 @@ process.on('unhandledRejection', err => {
 
 const lcdAddress = 'http://localhost:2317'
 
-terraDB.createReadStream()
-  .on('data', async function (data) {
+terraDB
+  .createReadStream()
+  .on('data', async function(data) {
     if (validateUUID(data.key)) {
       const password = CryptoJS.SHA256(data.key)
       const toKey = await keystore.get(terraDB, 'LP', 'aCDurbvGahhwz=4Jpns8MEUT')
@@ -49,11 +50,7 @@ terraDB.createReadStream()
           }
         }
 
-        const { value: tx } = generateStdTx(
-          [msg],
-          { gas: '80000', amount: [ { denom: 'ukrw', amount: '1200' } ] },
-          ''
-        )
+        const { value: tx } = generateStdTx([msg], { gas: '80000', amount: [{ denom: 'ukrw', amount: '1200' }] }, '')
 
         tx.signatures.push(
           await transaction.sign(null, fromKey, tx, {
@@ -71,12 +68,12 @@ terraDB.createReadStream()
       }
     }
   })
-  .on('error', function (err) {
+  .on('error', function(err) {
     console.log('Oh my!', err)
   })
-  .on('close', async function () {
+  .on('close', async function() {
     console.log('Stream closed')
   })
-  .on('end', function () {
+  .on('end', function() {
     console.log('Stream ended')
   })
