@@ -93,7 +93,7 @@ async function batchQueue() {
 
   tx.signatures.push(
     await transaction.sign(null, fromKey, tx, {
-      chain_id: 'testing',
+      chain_id: args.chainID,
       account_number: fromAccount.account_number,
       sequence: fromAccount.sequence
     })

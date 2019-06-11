@@ -9,7 +9,7 @@ const ENDPOINT_TX_BROADCAST = `/txs`
 const ax = axios.create({
   httpAgent: new http.Agent({ keepAlive: true }),
   httpsAgent: new https.Agent({ keepAlive: true }),
-  timeout: 15000
+  timeout: 30000
 })
 
 export async function queryAccount(lcdAddress, address) {
@@ -66,8 +66,7 @@ export async function broadcast(lcdAddress, account, body): Promise<number> {
       if (error.code !== 4) {
         throw new Error(error.message)
       }
-    } catch (err) {
-      throw err
+    } catch (e) {
     }
   } else {
     console.info(`txhash: ${data.txhash}`)
