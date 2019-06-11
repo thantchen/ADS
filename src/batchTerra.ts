@@ -175,7 +175,7 @@ async function batchSend() {
       })
     )
 
-    const body = transaction.createBroadcastBody(tx, 'block')
+    const body = transaction.createBroadcastBody(tx, 'sync')
     const height = await client.broadcast(args.lcdAddress, lpAccount, body)
 
     console.log(`height ${height}, sequence: ${lpAccount.sequence}`)
