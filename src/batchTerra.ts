@@ -73,7 +73,6 @@ async function batchQueue() {
   const values = candidateValues.slice(0, sliceIndex)
 
   if (!values.length) {
-    console.info('queue is empty')
     return
   }
 
@@ -148,7 +147,6 @@ async function batchSend() {
 
   // empty queue
   if (!value) {
-    console.info('send queue is empty')
     return
   }
 

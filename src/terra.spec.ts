@@ -47,11 +47,7 @@ describe('terra', () => {
     transaction.assignSignature(tx, signature)
     const body = transaction.createBroadcastBody(tx)
 
-    const height = await client.broadcast(
-      lcdAddress,
-      account,
-      body
-    )
+    const height = await client.broadcast(lcdAddress, account, body)
 
     expect(height).toBeGreaterThan(0)
   })

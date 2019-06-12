@@ -37,7 +37,6 @@ async function batchQueue() {
   const candidateValues: Value[] = await Queue.peek(TEMPURA_QUEUE_NAME, 10)
 
   if (!candidateValues.length) {
-    console.info('queue is empty')
     return
   }
 

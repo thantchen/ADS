@@ -49,7 +49,7 @@ export async function broadcast(lcdAddress: string, account: { sequence: string 
   })
 
   const AVERAGE_BLOCK_TIME = 6000
-  const MAX_RETRY_COUNT = 3
+  const MAX_RETRY_COUNT = 10
 
   for (let i = 0; i < MAX_RETRY_COUNT; i += 1) {
     try {
