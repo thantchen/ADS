@@ -49,7 +49,7 @@ export async function broadcast(lcdAddress: string, account: { sequence: string 
   })
 
   const AVERAGE_BLOCK_TIME = 6000
-  const MAX_RETRY_COUNT = 10
+  const MAX_RETRY_COUNT = 5
 
   for (let i = 0; i < MAX_RETRY_COUNT; i += 1) {
     try {
@@ -70,7 +70,7 @@ export async function broadcast(lcdAddress: string, account: { sequence: string 
       return height
     } catch (err) {
       // Wait block time
-      console.info(`tx not found yet: ${err.message}`)
+      console.info(`tx not found yet: ${err.message}, hash: ${data.txhash}`)
     }
   }
 

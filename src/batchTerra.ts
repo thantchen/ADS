@@ -3,11 +3,13 @@ import redis, { Queue } from 'redis'
 import * as level from 'level'
 import * as config from 'config'
 import { ArgumentParser } from 'argparse'
+import * as CryptoJS from 'crypto-js'
+import { uniq } from 'lodash'
 import * as keystore from 'lib/keystore'
 import * as client from 'lib/client'
 import * as transaction from 'lib/transaction'
 import { InOut, generateMultiSend, generateStdTx } from 'lib/msg'
-import * as CryptoJS from 'crypto-js'
+import mergeSendQueue from './mergeSendQueue'
 
 const terraDB = level(config.db.terra.path)
 
@@ -142,6 +144,10 @@ async function batchQueue() {
 }
 
 async function batchSend() {
+  await mergeSendQueue().catch(err => {
+    console.error('mergeSendQueue raised an error:', err)
+  })
+
   // 한번에 하나씩만 처리
   const [value] = await Queue.peek(SEND_QUEUE_NAME, 1)
 
@@ -231,7 +237,9 @@ async function batchSend() {
       })
     )
 
-    const keys = await getKeys(value.userIds.map(userId => ({ userId })))
+    const keys = await getKeys(uniq(value.userIds).map(userId => ({ userId })))
+
+    console.log(`keys.length ${keys.length}`)
 
     const accounts = await Bluebird.map(keys, ({ address }) => client.queryAccount(args.lcdAddress, address), {
       concurrency
@@ -267,12 +275,12 @@ async function batchSend() {
 
 async function asyncSendLoop() {
   await batchSend()
-  setTimeout(asyncSendLoop, 5000)
+  setTimeout(asyncSendLoop, 6500)
 }
 
 async function asyncQueueLoop() {
   await batchQueue()
-  setTimeout(asyncQueueLoop, 5000)
+  setTimeout(asyncQueueLoop, 20000)
 }
 
 async function main() {

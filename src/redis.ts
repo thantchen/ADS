@@ -8,6 +8,10 @@ export class Queue {
     return redis.rpush(queueName, ...values.map(v => JSON.stringify(v)))
   }
 
+  static async lpush(queueName: string, ...values: any[]) {
+    return redis.lpush(queueName, ...values.map(v => JSON.stringify(v)))
+  }
+
   static async pop(queueName: string) {
     return JSON.parse(await redis.lpop(queueName))
   }
@@ -18,7 +22,11 @@ export class Queue {
   }
 
   static async trim(queueName: string, limit: number) {
-    await redis.ltrim(queueName, limit + 1, -1)
+    await redis.ltrim(queueName, limit, -1)
+  }
+
+  static async len(queueName: string) {
+    return redis.llen(queueName)
   }
 }
 
