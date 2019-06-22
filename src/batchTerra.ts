@@ -186,6 +186,7 @@ async function batchSend() {
 
     if (height <= 0) {
       console.error('could not send broadcast! must be fixed', value)
+      lpAccount = await client.queryAccount(args.lcdAddress, lpKey.address)
       return
     }
 

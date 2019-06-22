@@ -4,6 +4,8 @@ import * as util from 'util'
 import axios from 'axios'
 import * as Bluebird from 'bluebird'
 
+const debug = require('debug')('lp-server:terra')
+
 const ENDPOINT_QUERY_ACCOUNT = '/auth/accounts/%s'
 const ENDPOINT_TX_BROADCAST = `/txs`
 
@@ -34,22 +36,28 @@ export async function queryAccount(lcdAddress, address) {
 export async function queryTaxRate(lcdAddress) {
   const { data } = await ax.get(`${lcdAddress}/treasury/tax-rate`)
 
-  if (Number.isNaN(+data)) {
+  if (Number.isNaN(+data.tax_rate)) {
     throw new Error('invalid tax rate response')
   }
 
-  return +data
+  return +data.tax_rate
 }
 
 export async function broadcast(lcdAddress: string, account: { sequence: string }, body: any): Promise<number> {
+  debug(body)
+
   // Send broadcast
   const { data } = await ax.post(lcdAddress + ENDPOINT_TX_BROADCAST, body).catch(e => {
     if (e.response) return e.response
     throw e
   })
 
+  if (!data.txhash) {
+    throw new Error('no txhash')
+  }
+
   const AVERAGE_BLOCK_TIME = 6000
-  const MAX_RETRY_COUNT = 5
+  const MAX_RETRY_COUNT = 7
 
   for (let i = 0; i < MAX_RETRY_COUNT; i += 1) {
     try {

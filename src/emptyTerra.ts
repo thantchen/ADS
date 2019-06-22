@@ -64,7 +64,6 @@ terraDB
         const height = await client.broadcast(lcdAddress, fromAccount, body)
 
         console.log(height)
-        await Bluebird.delay(10000)
       }
     }
   })
