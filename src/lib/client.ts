@@ -53,11 +53,12 @@ export async function broadcast(lcdAddress: string, account: { sequence: string 
   })
 
   if (!data.txhash) {
-    throw new Error('no txhash')
+    console.error('cannot find txhash', data)
+    return 0
   }
 
-  const AVERAGE_BLOCK_TIME = 6000
-  const MAX_RETRY_COUNT = 7
+  const AVERAGE_BLOCK_TIME = 6500
+  const MAX_RETRY_COUNT = 5
 
   for (let i = 0; i < MAX_RETRY_COUNT; i += 1) {
     try {
@@ -67,7 +68,9 @@ export async function broadcast(lcdAddress: string, account: { sequence: string 
       const { data: tx } = await ax.get(`${lcdAddress}/txs/${data.txhash}`)
       let height = 0
 
-      if (tx.logs && !tx.logs[0].success) {
+      if (tx.code) {
+        console.error(`broadcast has error:`, tx.raw_log)
+      } else if (tx.logs && !tx.logs[0].success) {
         console.error('broadcast sent, but failed:', tx.logs)
       } else {
         console.info(`txhash: ${tx.txhash}`)

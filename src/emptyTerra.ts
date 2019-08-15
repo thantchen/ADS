@@ -63,7 +63,11 @@ terraDB
         const body = transaction.createBroadcastBody(tx)
         const height = await client.broadcast(lcdAddress, fromAccount, body)
 
-        console.log(height)
+        if (height <= 0) {
+          console.error(`broadcast failed. account: ${fromAccount}`)
+        } else {
+          console.log(height)
+        }
       }
     }
   })

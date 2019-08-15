@@ -162,7 +162,7 @@ async function batchSend() {
    * MultiSend LP to users
    */
   if (from === 'lp') {
-    const gas = 150000 + inputs.length * 40000
+    const gas = 100000 + inputs.length * 35000
     const { value: tx } = generateStdTx(
       [generateMultiSend(inputs, outputs)],
       { gas: gas.toString(), amount: [{ amount: (gas * 0.015).toString(), denom: 'ukrw' }] },
@@ -223,7 +223,7 @@ async function batchSend() {
       })
     })
 
-    const gas = 150000 + inputs.length * 40000
+    const gas = 250000 + inputs.length * 40000
     const { value: tx } = generateStdTx(
       [generateMultiSend(inputs, outputs)],
       { gas: gas.toString(), amount: [{ amount: (gas * 0.015).toString(), denom: 'ukrw' }] },
