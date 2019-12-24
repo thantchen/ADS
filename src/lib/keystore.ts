@@ -1,5 +1,5 @@
 import * as CryptoJS from 'crypto-js'
-import * as keyUtils from './keyUtils'
+import { Key, createKeyFromMnemonic, generateMnemonic } from './keyUtils'
 
 const KEY_SIZE = 256
 const ITERATIONS = 100
@@ -25,12 +25,12 @@ function encrypt(plainText: string, password: string) {
   return salt.toString() + iv.toString() + encrypted.toString()
 }
 
-export async function create(db, chainName: string, name: string, password: string, mnemonic?: string) {
-  const wallet = await keyUtils.createWalletFromMnemonic(chainName, mnemonic || keyUtils.generateMnemonic())
-  const ciphertext = encrypt(JSON.stringify(wallet), password)
+export async function create(db, chainName: string, name: string, password: string, mnemonic?: string): Promise<Key> {
+  const key = await createKeyFromMnemonic(chainName, mnemonic || generateMnemonic())
+  const ciphertext = encrypt(JSON.stringify(key), password)
 
   await db.put(name, ciphertext)
-  return wallet
+  return key
 }
 
 function decrypt(compositeMsg: string, password: string) {
@@ -50,7 +50,7 @@ function decrypt(compositeMsg: string, password: string) {
   }).toString(CryptoJS.enc.Utf8)
 }
 
-export async function get(db, name: string, password: string) {
+export async function get(db, name: string, password: string): Promise<Key> {
   const ciphertext = await db.get(name)
 
   try {

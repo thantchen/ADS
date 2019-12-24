@@ -91,7 +91,7 @@ function createSignature(signature, sequence, accountNumber, publicKey): Signatu
 }
 
 // main function to get a signature from ledger or local keystore
-export async function sign(
+export default async function sign(
   ledger,
   fromKey,
   tx,
@@ -122,18 +122,4 @@ export async function sign(
   const signatureBuffer = signWithPrivateKey(signMessage, fromKey.privateKey)
   const pubKeyBuffer = Buffer.from(fromKey.publicKey, `hex`)
   return createSignature(signatureBuffer, baseRequest.sequence, baseRequest.account_number, pubKeyBuffer)
-}
-
-// adds the signature object to the tx
-export function assignSignature(tx, ...signatures) {
-  return Object.assign(tx, { signatures })
-}
-
-// the broadcast body consists of the signed tx and a return type
-// returnType can be block (inclusion in block), async (right away), sync (after checkTx has passed)
-export function createBroadcastBody(signedTx, modeType = `sync`) {
-  return JSON.stringify({
-    tx: signedTx,
-    mode: modeType
-  })
 }

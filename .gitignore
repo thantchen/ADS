@@ -82,3 +82,6 @@ ormconfig.json
 # local config
 config/local*.*
 data/
+
+*.sh
+wallets.txt

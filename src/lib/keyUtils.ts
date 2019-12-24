@@ -47,7 +47,15 @@ export function generateMnemonic() {
   return bip39.generateMnemonic(256)
 }
 
-export async function createWalletFromMnemonic(chainName: string, mnemonic: string) {
+export interface Key {
+  chainName: string
+  privateKey: string
+  publicKey: string
+  address: string
+  valAddress: string
+}
+
+export async function createKeyFromMnemonic(chainName: string, mnemonic: string): Promise<Key> {
   const masterKey = await deriveMasterKey(mnemonic)
   const { privateKey, publicKey } = deriveKeypair(masterKey)
   const address = createAddress(chainName, publicKey)

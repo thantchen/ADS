@@ -7,5 +7,8 @@ module.exports = {
     terra: {
       path: 'data/terra'
     }
+  },
+  queue: {
+    name: 'lp:dev'
   }
 }

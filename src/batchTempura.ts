@@ -1,3 +1,4 @@
+// import * as Sentry from '@sentry/node'
 import * as Bluebird from 'bluebird'
 import { Queue } from 'redis'
 import * as level from 'level'
@@ -5,24 +6,34 @@ import * as config from 'config'
 import { ArgumentParser } from 'argparse'
 import * as keystore from 'lib/keystore'
 import * as client from 'lib/client'
-import * as transaction from 'lib/transaction'
+import sign from 'lib/sign'
 import { generateSend, generateStdTx } from 'lib/msg'
 
-const tempuraDB = level(config.db.tempura.path)
+// Sentry.init({ dsn: 'https://655dfc24aaaa40fbbebb5d3c015b0f7a@sentry.io/1532513' })
 
 Bluebird.config({
   longStackTraces: true
 })
 
 global.Promise = Bluebird
+/////////////////////////////
+const tempuraDB = level(config.db.tempura.path)
+
+const TEMPURA_QUEUE_NAME = 'lp:tempura:queue'
+
+// variable for storing command line parameters
+let args
+let gracefulShutdownCounter: number = 0
 
 process.on('unhandledRejection', err => {
   console.error(err)
   process.exit(1)
 })
 
-let args
-const TEMPURA_QUEUE_NAME = 'lp:tempura:queue'
+process.on('SIGINT', () => {
+  console.log('Caught interrupt signal. Graceful shutdown started.')
+  if (!gracefulShutdownCounter) gracefulShutdownCounter = 1
+})
 
 interface Value {
   id: string
@@ -45,7 +56,10 @@ async function batchQueue() {
 
   // 다른 denom이 나오면 중지한다
   for (let i = 1; i < candidateValues.length; i += 1) {
-    if (candidateValues[i].denom !== firstDenom) break
+    if (candidateValues[i].denom !== firstDenom) {
+      break
+    }
+
     sliceIndex += 1
   }
 
@@ -83,37 +97,45 @@ async function batchQueue() {
     memo = 'tempura batch: chai to lp'
   }
 
-  const { value: tx } = generateStdTx(
+  const tx = generateStdTx(
     [generateSend(sum.toString(), fromKey.address, toKey.address)],
     { gas: '200000', amount: [] }, // tempura는 gas fee 없음
     memo
   )
 
   tx.signatures.push(
-    await transaction.sign(null, fromKey, tx, {
+    await sign(null, fromKey, tx, {
       chain_id: args.chainID,
       account_number: fromAccount.account_number,
       sequence: fromAccount.sequence
     })
   )
 
-  const body = transaction.createBroadcastBody(tx)
-  const height = await client.broadcast(args.lcdAddress, lpAccount, body)
-
-  console.log(`height ${height}, sequence: ${lpAccount.sequence}`)
+  const height = await client.broadcast(args.lcdAddress, tx, 'sync')
 
   if (height <= 0) {
-    console.error('could not send broadcast! must be fixed', values)
+    console.error('could not send broadcast! must be fixed')
     return
   }
+
+  console.log(`height ${height}, sequence: ${lpAccount.sequence}`)
+  lpAccount.sequence = (parseInt(lpAccount.sequence, 10) + 1).toString()
 
   // 성공. 큐에서 삭제
   await Queue.trim(TEMPURA_QUEUE_NAME, values.length)
 }
 
 async function asyncQueueLoop() {
-  await batchQueue()
-  setTimeout(asyncQueueLoop, 5000)
+  if (gracefulShutdownCounter) {
+    process.exit(0)
+  }
+
+  const startTime = Date.now()
+
+  await batchQueue().catch(console.error)
+
+  // Sleep to reducing CPU cost
+  setTimeout(asyncQueueLoop, Math.max(0, startTime + 500 - Date.now()))
 }
 
 async function main() {

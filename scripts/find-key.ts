@@ -1,4 +1,3 @@
-import * as promptly from 'promptly'
 import { ArgumentParser } from 'argparse'
 import * as level from 'level'
 import * as config from 'config'
@@ -23,10 +22,14 @@ async function main() {
     required: true
   })
 
+  parser.addArgument(['-p', '--password'], {
+    help: 'password'
+  })
+
   const args = parser.parseArgs()
   const db = level(config.db[args.chain_name].path)
 
-  console.info(await keystore.get(db, args.key, CryptoJS.SHA256(args.key)))
+  console.info(await keystore.get(db, args.key, args.password || CryptoJS.SHA256(args.key)))
 
   await db.close()
 }

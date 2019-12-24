@@ -1,5 +1,32 @@
 import * as sha256 from 'crypto-js/sha256'
 
+export interface Amount {
+  denom: string
+  amount: string
+}
+
+export interface Fee {
+  gas: string
+  amount: Amount[]
+}
+
+export interface Signature {
+  signature: string
+  account_number: string
+  sequence: string
+  pub_key: {
+    type: string
+    value: string
+  }
+}
+
+export interface StdTx {
+  fee: Fee
+  memo: string
+  msg: object[]
+  signatures: Signature[]
+}
+
 function normalizeDecimal(decimalNumber: string) {
   const num = decimalNumber.split('.')
   let result = decimalNumber
@@ -23,45 +50,12 @@ export function generateVoteHash(salt: string, price: string, denom: string, vot
   return hash.slice(0, 40)
 }
 
-interface Amount {
-  denom: string
-  amount: string
-}
-
-interface Fee {
-  gas: string
-  amount: Amount[]
-}
-
-interface Signature {
-  signature: string
-  account_number: string
-  sequence: string
-  pub_key: {
-    type: string
-    value: string
-  }
-}
-
-interface StdTx {
-  type: string
-  value: {
-    fee: Fee
-    memo: string
-    msg: object[]
-    signatures: Signature[]
-  }
-}
-
-export function generateStdTx(msg: object[], fee: Fee, memo: string): StdTx {
+export function generateStdTx(msg: object[], fee: Fee, memo: string = ''): StdTx {
   return {
-    type: 'auth/StdTx',
-    value: {
-      fee,
-      memo,
-      msg,
-      signatures: []
-    }
+    fee,
+    memo,
+    msg,
+    signatures: []
   }
 }
 
@@ -133,7 +127,7 @@ export interface InOut {
 
 export function generateMultiSend(inputs: InOut[], outputs: InOut[]) {
   return {
-    type: 'pay/MsgMultiSend',
+    type: 'bank/MsgMultiSend',
     value: {
       inputs,
       outputs

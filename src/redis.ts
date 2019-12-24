@@ -1,3 +1,4 @@
+import * as Bluebird from 'bluebird'
 import * as IORedis from 'ioredis'
 import * as config from 'config'
 
@@ -18,7 +19,7 @@ export class Queue {
 
   static async peek(queueName: string, limit: number) {
     const values = await redis.lrange(queueName, 0, limit - 1)
-    return values.map(v => v && JSON.parse(v)).filter(Boolean)
+    return values.map(v => v && v !== 'deleted' && JSON.parse(v)).filter(Boolean)
   }
 
   static async trim(queueName: string, limit: number) {
@@ -27,6 +28,11 @@ export class Queue {
 
   static async len(queueName: string) {
     return redis.llen(queueName)
+  }
+
+  static async delete(queueName: string, indexes: number[]) {
+    await Bluebird.map(indexes, idx => redis.lset(queueName, idx, 'deleted'))
+    return redis.lrem(queueName, 0, 'deleted')
   }
 }
 

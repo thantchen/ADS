@@ -1,18 +1,18 @@
 import * as level from 'level'
 import { generateStdTx, generateMultiSend } from 'lib/msg'
-import * as transaction from 'lib/transaction'
+import sign from 'lib/sign'
 import * as keystore from 'lib/keystore'
 import * as client from 'lib/client'
 
 const db = level('data/terra')
 
 describe('terra', () => {
-  const lcdAddress = 'https://soju-0008-lcd.terra.dev'
-  const chainId = 'soju-0009'
+  const lcdAddress = 'https://vodka-lcd.terra.dev'
+  const chainId = 'vodka'
 
   test('MultiSend', async () => {
     const coins = [{ denom: 'ukrw', amount: '10000' }]
-    const { value: tx } = generateStdTx(
+    const tx = generateStdTx(
       [
         generateMultiSend(
           [
@@ -31,24 +31,23 @@ describe('terra', () => {
           ]
         )
       ],
-      { gas: '300000', amount: [{ amount: '4500', denom: 'uluna' }] },
+      { gas: '300000', amount: [{ amount: '4500', denom: 'ukrw' }] },
       'Sent by lp server'
     )
 
     const key = await keystore.get(db, 'faucet', '12345678')
     const account = await client.queryAccount(lcdAddress, key.address)
 
-    const signature = await transaction.sign(null, key, tx, {
-      chain_id: chainId,
-      account_number: account.account_number,
-      sequence: account.sequence
-    })
+    tx.signatures.push(
+      await sign(null, key, tx, {
+        chain_id: chainId,
+        account_number: account.account_number,
+        sequence: account.sequence
+      })
+    )
 
-    transaction.assignSignature(tx, signature)
-    const body = transaction.createBroadcastBody(tx)
-
-    const height = await client.broadcast(lcdAddress, account, body)
+    const height = await client.broadcast(lcdAddress, tx, 'sync')
 
     expect(height).toBeGreaterThan(0)
-  })
+  }, 30000)
 })

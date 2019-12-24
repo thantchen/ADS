@@ -1,54 +1,50 @@
 import * as polka from 'polka'
 import { Queue } from 'redis'
-import * as validateUUID from 'uuid-validate'
+import * as config from 'config'
+// tslint:disable-next-line
+import Big from 'big.js'
 import { success } from 'lib/response'
 import { APIError } from 'lib/error'
-import * as uuid from 'uuid'
 
 const app = polka()
 
-const parseClaimBody = body => {
-  const { userId, merchantId } = body
+function parseClaimBody(
+  body: any
+): {
+  from: string
+  to: string
+  amount: Big
+} {
+  const { from, to } = body
 
-  if (!userId || !validateUUID(userId)) {
-    throw new APIError(400, 'invalid userId')
+  if (typeof from !== 'string' || !from) {
+    throw new APIError(400, 'invalid from')
   }
 
-  if (!merchantId || !validateUUID(merchantId)) {
-    throw new APIError(400, 'invalid merchantId')
+  if (typeof to !== 'string' || !to) {
+    throw new APIError(400, 'invalid to')
   }
 
-  const amount = +body.amount
-
-  if (Number.isNaN(amount) || amount <= 0) {
-    throw new APIError(400, 'invalid amount')
+  try {
+    const amount = new Big(body.amount)
+    return { from, to, amount }
+  } catch (e) {
+    throw new APIError(400, e.message)
   }
-
-  return { userId, merchantId, amount }
 }
 
 // POST /claim/don
 app.post('/don', async (req, res) => {
-  const { userId, merchantId, amount } = parseClaimBody(req.body)
+  const { from, to, amount } = parseClaimBody(req.body)
+  const at = new Date()
 
-  // TODO: 현재 차이에서 포인트 충전이 따로 없이 충전한 모든 금액을 바로 사용하고 있기 때문에
-  // 사용자 지갑에 갔다가 바로 다시 LP지갑으로 회수한다. 잔여 포인트라는 개념이 생길 경우 구현 필요
-  await Queue.push('lp:terra:queue', {
-    id: uuid(),
+  await Queue.push(config.queue.name, {
     denom: 'ukrw',
-    userId,
-    merchantId,
-    amount: (amount * 1000000).toString(),
-    at: new Date()
-  })
-
-  await Queue.push('lp:tempura:queue', {
-    id: uuid(),
-    denom: 'don',
-    userId,
-    merchantId,
-    amount: amount.toString(),
-    at: new Date()
+    from,
+    to,
+    // body의 amount는 KRW 단위이므로 ukrw로 바꿔준다.
+    amount: amount.mul(1000000).toString(),
+    at
   })
 
   return success(res)
@@ -56,17 +52,16 @@ app.post('/don', async (req, res) => {
 
 // POST /claim/krw
 app.post('/krw', async (req, res) => {
-  const { userId, merchantId, amount } = parseClaimBody(req.body)
+  const { from, to, amount } = parseClaimBody(req.body)
+  const at = new Date()
 
-  // TODO: 현재는 잔여 포인트가 없기 때문에 queue 처리 필요 없지만, 생길 경우 구현 필요
-  // await Queue.push('lp:terra:queue', value)
-  await Queue.push('lp:tempura:queue', {
-    id: uuid(),
-    denom: 'krw',
-    userId,
-    merchantId,
-    amount: amount.toString(),
-    at: new Date()
+  await Queue.push(config.queue.name, {
+    denom: 'ukrw',
+    from,
+    to,
+    // body의 amount는 KRW 단위이므로 ukrw로 바꿔준다.
+    amount: amount.mul(1000000).toString(),
+    at
   })
 
   return success(res)

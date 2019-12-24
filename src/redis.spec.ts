@@ -43,4 +43,34 @@ describe('redis', () => {
     expect(list.length).toBe(5)
     expect(list[0].userId).toBe('6')
   })
+
+  test('delete', async () => {
+    await redis.del('delete_queue')
+    await Queue.push(
+      'delete_queue',
+      { userId: '1', amount: '4321' }, // 0
+      { userId: '2', amount: '4321' },
+      { userId: '3', amount: '4321' },
+      { userId: '4', amount: '4321' },
+      { userId: '5', amount: '4321' },
+      { userId: '6', amount: '4321' }, // 5
+      { userId: '7', amount: '4321' },
+      { userId: '8', amount: '4321' },
+      { userId: '9', amount: '4321' },
+      { userId: '10', amount: '4321' } // 9
+    )
+
+    await Queue.delete('delete_queue', [0, 5, 9])
+    const list = await Queue.peek('delete_queue', 10)
+    expect(list.length).toBe(7)
+    expect(list).toEqual([
+      { userId: '2', amount: '4321' },
+      { userId: '3', amount: '4321' },
+      { userId: '4', amount: '4321' },
+      { userId: '5', amount: '4321' },
+      { userId: '7', amount: '4321' },
+      { userId: '8', amount: '4321' },
+      { userId: '9', amount: '4321' }
+    ])
+  })
 })

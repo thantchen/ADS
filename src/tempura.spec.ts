@@ -1,6 +1,6 @@
 import * as level from 'level'
 import { generateClaim, generateStdTx, generateSend } from 'lib/msg'
-import * as transaction from 'lib/transaction'
+import sign from 'lib/sign'
 import * as keystore from 'lib/keystore'
 import * as client from 'lib/client'
 
@@ -639,23 +639,23 @@ describe('send', () => {
     // query account for account_number and sequence
     const account = await client.queryAccount('http://localhost:1317', valKey.address)
 
-    const { value: tx } = generateStdTx(
+    const tx = generateStdTx(
       testAccounts
         .filter(acc => acc.name.startsWith('user'))
         .map(acc => generateSend('10000', valKey.address, acc.address)),
       { gas: '5000000', amount: [] },
       ''
     )
-    const signature = await transaction.sign(null, valKey, tx, {
-      chain_id: 'testing',
-      account_number: account.account_number,
-      sequence: account.sequence
-    })
 
-    transaction.assignSignature(tx, signature)
-    const body = transaction.createBroadcastBody(tx)
+    tx.signatures.push(
+      await sign(null, valKey, tx, {
+        chain_id: 'testing',
+        account_number: account.account_number,
+        sequence: account.sequence
+      })
+    )
 
-    const height = await client.broadcast('http://localhost:1317', account, body)
+    const height = await client.broadcast('http://localhost:1317', tx, 'sync')
 
     expect(height).toBeGreaterThan(0)
   }, 15000)
