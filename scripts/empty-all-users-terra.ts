@@ -15,7 +15,7 @@ Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 
 process.on('unhandledRejection', err => {
   console.error(err)
@@ -24,35 +24,35 @@ process.on('unhandledRejection', err => {
 
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Vacuum wallets'
   })
 
-  parser.addArgument(['--chain-id'], {
+  parser.add_argument('--chain-id', {
     help: 'chain id',
     dest: 'chainID',
     required: true
   })
 
-  parser.addArgument(['--lcd'], {
+  parser.add_argument('--lcd', {
     help: 'lcd address',
     dest: 'lcdAddress',
     required: true
   })
 
-  parser.addArgument(['--lp-key'], {
+  parser.add_argument('--lp-key', {
     help: 'name of LP key',
     dest: 'lpName',
     required: true
   })
 
-  parser.addArgument(['--lp-password'], {
+  parser.add_argument('--lp-password', {
     help: 'password of LP key',
     dest: 'lpPassword',
     required: true
   })
 
-  const args = parser.parseArgs()
+  const args = parser.parse_args()
   const terraDB = level(config.db.terra.path)
   const userIds: string[] = []
 

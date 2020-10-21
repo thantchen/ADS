@@ -6,7 +6,7 @@ import * as level from 'level'
 import * as ProgressBar from 'progress'
 import axios from 'axios'
 import * as config from 'config'
-import Big from 'big.js'
+import { Big } from 'big.js'
 import * as CryptoJS from 'crypto-js'
 import * as keystore from 'lib/keystore'
 import * as client from 'lib/client'
@@ -15,7 +15,7 @@ Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 
 process.on('unhandledRejection', err => {
   console.error(err)

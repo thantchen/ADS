@@ -11,7 +11,7 @@ Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 
 process.on('unhandledRejection', err => {
   sentry.captureException(err)

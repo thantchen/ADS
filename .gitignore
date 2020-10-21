@@ -84,4 +84,4 @@ config/local*.*
 data/
 
 *.sh
-wallets.txt
+*wallets.txt

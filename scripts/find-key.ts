@@ -7,26 +7,26 @@ import * as CryptoJS from 'crypto-js'
 // To run use `yarn import-key <...options>`
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Imports key into database'
   })
 
-  parser.addArgument(['-c', '--chain-name'], {
+  parser.add_argument('-c', '--chain-name', {
     help: 'chain name',
     choices: ['terra', 'tempura'],
     required: true
   })
 
-  parser.addArgument(['-k', '--key'], {
+  parser.add_argument('-k', '--key', {
     help: 'key',
     required: true
   })
 
-  parser.addArgument(['-p', '--password'], {
+  parser.add_argument('-p', '--password', {
     help: 'password'
   })
 
-  const args = parser.parseArgs()
+  const args = parser.parse_args()
   const db = level(config.db[args.chain_name].path)
 
   console.info(await keystore.get(db, args.key, args.password || CryptoJS.SHA256(args.key)))

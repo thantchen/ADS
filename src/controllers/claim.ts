@@ -1,8 +1,7 @@
 import * as polka from 'polka'
 import { Queue } from 'redis'
 import * as config from 'config'
-// tslint:disable-next-line
-import Big from 'big.js'
+import { Big } from 'big.js'
 import { success } from 'lib/response'
 import { APIError } from 'lib/error'
 

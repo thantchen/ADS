@@ -7,22 +7,22 @@ import * as keystore from 'lib/keystore'
 // To run use `yarn import-key <...options>`
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Imports key into database'
   })
 
-  parser.addArgument(['-c', '--chain-name'], {
+  parser.add_argument('-c', '--chain-name', {
     help: 'chain name',
     choices: ['terra', 'tempura'],
     required: true
   })
 
-  parser.addArgument(['-k', '--key'], {
+  parser.add_argument('-k', '--key', {
     help: 'key',
     required: true
   })
 
-  const args = parser.parseArgs()
+  const args = parser.parse_args()
   const password = await promptly.password(`Enter a passphrase to encrypt your key to disk:`, { replace: `*` })
   const confirm = await promptly.password(`Repeat the passphrase:`, { replace: `*` })
 

@@ -7,20 +7,26 @@ import * as bech32 from 'bech32'
 
 import * as secp256k1 from 'secp256k1'
 
-const hdPathAtom = `m/44'/118'/0'/0/0` // key controlling ATOM allocation
+const HDPATH = process.env.HDPATH || `m/44'/118'/0'/0/0` // key controlling ATOM allocation
 
-async function deriveMasterKey(mnemonic) {
-  // throws if mnemonic is invalid
-  bip39.validateMnemonic(mnemonic)
+async function deriveMasterKey(mnemonic: string): Promise<bip32.BIP32Interface> {
+  if (!bip39.validateMnemonic(mnemonic)) {
+    throw new Error('invalid mnemonic')
+  }
 
-  const seed = await bip39.mnemonicToSeed(mnemonic)
+  const seed: Buffer = await bip39.mnemonicToSeed(mnemonic)
   return bip32.fromSeed(seed)
 }
 
-function deriveKeypair(masterKey) {
-  const terraHD = masterKey.derivePath(hdPathAtom)
-  const privateKey = terraHD.privateKey
-  const publicKey = secp256k1.publicKeyCreate(privateKey, true)
+function deriveKeypair(masterKey: bip32.BIP32Interface): { privateKey: Buffer; publicKey: Buffer } {
+  const terraHD: bip32.BIP32Interface = masterKey.derivePath(HDPATH)
+  const privateKey: Buffer | undefined = terraHD.privateKey
+
+  if (!privateKey) {
+    throw new Error('private key is undefined')
+  }
+
+  const publicKey: Buffer = Buffer.from(secp256k1.publicKeyCreate(privateKey, true))
 
   return {
     privateKey,
@@ -29,21 +35,21 @@ function deriveKeypair(masterKey) {
 }
 
 // NOTE: this only works with a compressed public key (33 bytes)
-export function createAddress(chainName: string, publicKey: Buffer) {
+export function createAddress(chainName: string, publicKey: Buffer): string {
   const message = CryptoJS.enc.Hex.parse(publicKey.toString(`hex`))
-  const hash = ripemd160(CryptoJS.SHA256(message)).toString()
-  const address = Buffer.from(hash, `hex`)
-  const words = bech32.toWords(address)
+  const hash: string = ripemd160(CryptoJS.SHA256(message)).toString()
+  const address: Buffer = Buffer.from(hash, `hex`)
+  const words: number[] = bech32.toWords(address)
 
   return bech32.encode(chainName, words)
 }
 
 export function convertAddressToValidatorAddress(chainName: string, address: string) {
-  const { words } = bech32.decode(address)
+  const { words }: { prefix: string; words: number[] } = bech32.decode(address)
   return bech32.encode(`${chainName}valoper`, words)
 }
 
-export function generateMnemonic() {
+export function generateMnemonic(): string {
   return bip39.generateMnemonic(256)
 }
 

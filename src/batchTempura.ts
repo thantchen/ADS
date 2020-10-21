@@ -15,7 +15,7 @@ Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 /////////////////////////////
 const tempuraDB = level(config.db.tempura.path)
 
@@ -140,47 +140,47 @@ async function asyncQueueLoop() {
 
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Imports key into database'
   })
 
-  parser.addArgument(['--chain-id'], {
+  parser.add_argument('--chain-id', {
     help: 'chain id',
     dest: 'chainID',
     required: true
   })
 
-  parser.addArgument(['--lcd'], {
+  parser.add_argument('--lcd', {
     help: 'lcd address',
     dest: 'lcdAddress',
     required: true
   })
 
-  parser.addArgument(['--lp-key'], {
+  parser.add_argument('--lp-key', {
     help: 'name of LP key',
     dest: 'lpName',
     required: true
   })
 
-  parser.addArgument(['--lp-password'], {
+  parser.add_argument('--lp-password', {
     help: 'password of LP key',
     dest: 'lpPassword',
     required: true
   })
 
-  parser.addArgument(['--chai-key'], {
+  parser.add_argument('--chai-key', {
     help: 'name of Chai key',
     dest: 'chaiName',
     required: true
   })
 
-  parser.addArgument(['--chai-password'], {
+  parser.add_argument('--chai-password', {
     help: 'password of Chai key',
     dest: 'chaiPassword',
     required: true
   })
 
-  args = parser.parseArgs()
+  args = parser.parse_args()
 
   await asyncQueueLoop()
   // redis.disconnect()

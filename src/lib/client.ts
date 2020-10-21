@@ -67,7 +67,7 @@ export async function estimateTax(
     lcdAddress + ENDPOINT_TX_ESTIMATE_FEE,
     JSON.stringify({
       tx,
-      gas_prices: [{ amount: '0.015', denom: 'ukrw' }],
+      gas_prices: [{ amount: '1.7805', denom: 'ukrw' }],
       gas_adjustment: '1.4'
     })
   )
@@ -108,15 +108,15 @@ export async function broadcast(lcdAddress: string, tx: StdTx, mode: string): Pr
     const height: string = await ax
       .get(`${lcdAddress}/txs/${data.txhash}`)
       .then(({ data: tx }) => {
-        if (tx.code || (tx.logs && !tx.logs[0].success)) {
-          throw new Error(`successful tx with error: ${tx.raw_log}, hash: ${data.txhash}`)
+        if (tx.code) {
+          throw new Error(`successful tx with error: code: ${tx.code}, raw_log: ${tx.raw_log}, hash: ${data.txhash}`)
         }
 
         console.info(`txhash: ${tx.txhash}`)
         return tx.height
       })
       .catch(err => {
-        if (err.isAxiosError && err.response.status === 404) {
+        if (err.isAxiosError) {
           console.info(`tx not found yet: ${err.message}, hash: ${data.txhash}`)
           return ''
         }
@@ -131,5 +131,5 @@ export async function broadcast(lcdAddress: string, tx: StdTx, mode: string): Pr
     await Bluebird.delay(AVERAGE_BLOCK_TIME)
   }
 
-  return -1
+  throw new Error(`broadcast retrying failed: hash ${data.txhash}`)
 }

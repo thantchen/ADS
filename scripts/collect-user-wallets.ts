@@ -6,34 +6,56 @@ import { ArgumentParser } from 'argparse'
 import * as CryptoJS from 'crypto-js'
 import * as validateUUID from 'uuid-validate'
 import * as ProgressBar from 'progress'
+import * as es from 'event-stream'
 import * as keystore from 'lib/keystore'
-import * as client from 'lib/client'
 
 Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 
 process.on('unhandledRejection', err => {
   console.error(err)
   process.exit(1)
 })
 
+async function loadWallets(): Promise<Set<string>> {
+  const wallets: Set<string> = new Set()
+
+  return new Promise((resolve, reject) => {
+    fs
+      .createReadStream('wallets.txt')
+      .pipe(es.split())
+      .pipe(
+        es.mapSync(line => {
+          const cols = line.split(' ')
+          wallets.add(cols[0])
+        })
+      )
+      .on('error', reject)
+      .on('end', () => {
+        console.log(`${wallets.size} has been loaded`)
+        resolve(wallets)
+      })
+  })
+}
+
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Collect user wallets'
   })
 
-  parser.addArgument(['--lcd'], {
+  parser.add_argument('--lcd', {
     help: 'lcd address',
     dest: 'lcdAddress',
     required: true
   })
 
-  const args = parser.parseArgs()
+  const args = parser.parse_args()
   const terraDB = level(config.db.terra.path)
+  const wallets = await loadWallets()
   const userIds: string[] = []
 
   terraDB
@@ -53,24 +75,20 @@ async function main() {
       console.log(`Total ${userIds.length} found`)
 
       const bar = new ProgressBar('[:bar] :percent :rate/sec', { width: 50, total: userIds.length })
-      const stream = fs.createWriteStream('wallets.txt')
+      const stream = fs.createWriteStream('wallets.txt', { flags: 'a' })
 
       await Bluebird.map(
         userIds,
-        async key => {
-          const password = CryptoJS.SHA256(key)
-          const fromKey = await keystore.get(terraDB, key, password)
-          const fromAccount = await client.queryAccount(args.lcdAddress, fromKey.address)
+        async userId => {
+          bar.tick()
 
-          if (fromAccount.coins && fromAccount.coins.length) {
-            stream.write(
-              `${key} ${fromAccount.account_number} ${fromAccount.sequence} ${JSON.stringify(
-                fromAccount.coins
-              )} ${JSON.stringify(fromKey)}\n`
-            )
+          if (wallets.has(userId)) {
+            return
           }
 
-          bar.tick()
+          const fromKey = await keystore.get(terraDB, userId, CryptoJS.SHA256(userId))
+
+          stream.write(`${userId} 0 0 null ${JSON.stringify(fromKey)}\n`)
         },
         { concurrency: 16 }
       )

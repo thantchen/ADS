@@ -17,7 +17,7 @@ Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 
 /////////////////////////////
 const terraDB = level(config.db.terra.path)
@@ -30,17 +30,6 @@ let lpKey: Key
 let lpAccount
 let isTerminate: boolean = false
 
-process.on('unhandledRejection', err => {
-  console.error(err)
-  process.env.NODE_CONFIG_ENV === 'prod' && Sentry.captureException(err)
-  process.exit(1)
-})
-
-process.on('SIGINT', () => {
-  console.log('Caught interrupt signal. Graceful shutdown started.')
-  if (!isTerminate) isTerminate = true
-})
-
 interface QueueElement {
   denom: string
   from: string
@@ -48,7 +37,7 @@ interface QueueElement {
   amount: string
 }
 
-async function getOrCreateKey(keyName: string): Promise<Key> {
+export async function getOrCreateKey(keyName: string): Promise<Key> {
   // Get or create keys from keystore
   const password = CryptoJS.SHA256(keyName)
 
@@ -58,7 +47,7 @@ async function getOrCreateKey(keyName: string): Promise<Key> {
   })
 }
 
-function getBatch(table: [string, string, string][]) {
+export function getBatch(table: [string, string, string][]) {
   const indexes: number[] = []
   const toAddresses: string[] = []
   const lastIndexes = new Set()
@@ -80,8 +69,12 @@ function getBatch(table: [string, string, string][]) {
 }
 
 async function batchQueue() {
-  // 최대 99개까지 MultiSend하므로 (0번은 lp wallet)
-  const elements: QueueElement[] = await Queue.peek(config.queue.name, 3000)
+  // We can batch multiple sends in one MultiSend message. Also, there is a limitation that
+  // one transaction can have 100 maximum signatures.
+  // However, We are getting enough number of elements since source address can 
+  // have multiple destinations.
+  // In result, we can batch more than 1000 sends in a single MultiSend message.
+  const elements: QueueElement[] = await Queue.peek(config.queue.name, 2000)
 
   if (elements.length === 0) {
     console.log('waiting for data')
@@ -155,17 +148,25 @@ async function batchQueue() {
 
   console.log(`broadcasting ${inputs.length} sends with ${tx.signatures.length} signature(s).`)
 
-  await client.broadcast(args.lcdAddress, tx, 'sync')
-  await Queue.delete(config.queue.name, indexes)
+  const height = await client.broadcast(args.lcdAddress, tx, 'sync')
+
+  if (height > 0) {
+    await Queue.delete(config.queue.name, indexes)
+  }
 }
 
 // Error handler for business logics
 const handleError = async err => {
-  console.error(err)
+  // Retry on axios error
+  if (err.isAxiosError) {
+    console.error(err.message)
+  } else {
+    console.error(err)
+    process.env.NODE_CONFIG_ENV === 'prod' && Sentry.captureException(err)
+    isTerminate = true
+  }
 
-  // Wait for 1 minute for error throttling
-  process.env.NODE_CONFIG_ENV === 'prod' && Sentry.captureException(err) && (await Bluebird.delay(60 * 1000))
-  return true
+  // await Bluebird.delay(3000)
 }
 
 async function asyncQueueLoop() {
@@ -183,42 +184,42 @@ async function asyncQueueLoop() {
 
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Imports key into database'
   })
 
-  parser.addArgument(['--chain-id'], {
+  parser.add_argument('--chain-id', {
     help: 'chain id',
     dest: 'chainID',
-    choices: ['vodka-0001', 'columbus-3'],
+    choices: ['tequila-0004', 'columbus-4'],
     required: true
   })
 
-  parser.addArgument(['--lcd'], {
+  parser.add_argument('--lcd', {
     help: 'lcd address',
     dest: 'lcdAddress',
     required: true
   })
 
-  parser.addArgument(['--lp-key'], {
+  parser.add_argument('--lp-key', {
     help: 'name of LP key',
     dest: 'lpName',
     required: true
   })
 
-  parser.addArgument(['--lp-password'], {
+  parser.add_argument('--lp-password', {
     help: 'password of LP key',
     dest: 'lpPassword',
     required: true
   })
 
-  parser.addArgument(['--sig-limit'], {
-    defaultValue: 6,
+  parser.add_argument('--sig-limit', {
+    default: 6,
     dest: 'sigLimit',
     type: Number
   })
 
-  args = parser.parseArgs()
+  args = parser.parse_args()
 
   // Get LP key and query account for account_number and sequence
   lpKey = await keystore.get(terraDB, args.lpName, args.lpPassword)
@@ -229,4 +230,17 @@ async function main() {
   // redis.disconnect()
 }
 
-main().catch(console.error)
+if (require.main === module) {
+  process.on('unhandledRejection', err => {
+    console.error(err)
+    process.env.NODE_CONFIG_ENV === 'prod' && Sentry.captureException(err)
+    process.exit(1)
+  })
+
+  process.on('SIGINT', () => {
+    console.log('Caught interrupt signal. Graceful shutdown started.')
+    if (!isTerminate) isTerminate = true
+  })
+
+  main().catch(console.error)
+}

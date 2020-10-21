@@ -18,7 +18,7 @@ Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 
 process.on('unhandledRejection', err => {
   console.error(err)
@@ -29,35 +29,35 @@ const LP_COUNT = 50
 
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Vacuum wallets'
   })
 
-  parser.addArgument(['--chain-id'], {
+  parser.add_argument('--chain-id', {
     help: 'chain id',
     dest: 'chainID',
     required: true
   })
 
-  parser.addArgument(['--lcd'], {
+  parser.add_argument('--lcd', {
     help: 'lcd address',
     dest: 'lcdAddress',
     required: true
   })
 
-  parser.addArgument(['--lp-key'], {
+  parser.add_argument('--lp-key', {
     help: 'name of LP key',
     dest: 'lpName',
     required: true
   })
 
-  parser.addArgument(['--lp-password'], {
+  parser.add_argument('--lp-password', {
     help: 'password of LP key',
     dest: 'lpPassword',
     required: true
   })
 
-  const args = parser.parseArgs()
+  const args = parser.parse_args()
   const terraDB = level(config.db.terra.path)
 
   const allLines: string[][] = []
@@ -90,16 +90,21 @@ async function main() {
 
     const keys = [[lpKey, lpAccount.account_number, lpAccount.sequence]]
 
-    for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i]
+    await Bluebird.map(lines, async line => {
+      if (line.length <= 1) return
 
-      if (line.length <= 1) break
-
-      const coins = JSON.parse(line[3])
       const fromKey = JSON.parse(line[4])
-      inputs.push({ address: fromKey.address, coins })
-      outputs.push({ address: lpKey.address, coins })
-      keys.push([fromKey, line[1], line[2]])
+      const account = await client.queryAccount(args.lcdAddress, fromKey.address)
+
+      if (account.coins.length !== 0) {
+        inputs.push({ address: fromKey.address, coins: account.coins })
+        outputs.push({ address: lpKey.address, coins: account.coins })
+        keys.push([fromKey, account.account_number, account.sequence])
+      }
+    })
+
+    if (inputs.length === 1) {
+      return
     }
 
     const tx = generateStdTx([generateMultiSend(inputs, outputs)], {
@@ -159,7 +164,7 @@ async function main() {
           })
 
         await Bluebird.delay(1000)
-        worker(index)
+        await worker(index)
       }
 
       for (let i = 0; i < LP_COUNT; i += 1) {

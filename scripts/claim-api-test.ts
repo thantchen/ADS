@@ -6,7 +6,6 @@
 import * as Bluebird from 'bluebird'
 import * as level from 'level'
 import * as config from 'config'
-import { ArgumentParser } from 'argparse'
 import * as validateUUID from 'uuid-validate'
 import * as ProgressBar from 'progress'
 import axios from 'axios'
@@ -15,7 +14,7 @@ Bluebird.config({
   longStackTraces: true
 })
 
-global.Promise = Bluebird
+global.Promise = <any>Bluebird
 
 process.on('unhandledRejection', err => {
   console.error(err)
