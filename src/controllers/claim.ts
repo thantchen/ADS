@@ -8,7 +8,7 @@ import { APIError } from 'lib/error'
 const app = polka()
 
 function parseClaimBody(
-  body: any
+  body: Record<string, unknown>
 ): {
   from: string
   to: string

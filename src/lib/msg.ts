@@ -23,7 +23,7 @@ export interface Signature {
 export interface StdTx {
   fee: Fee
   memo: string
-  msg: object[]
+  msg: Record<string, unknown>[]
   signatures: Signature[]
 }
 
@@ -50,7 +50,7 @@ export function generateVoteHash(salt: string, price: string, denom: string, vot
   return hash.slice(0, 40)
 }
 
-export function generateStdTx(msg: object[], fee: Fee, memo: string = ''): StdTx {
+export function generateStdTx(msg: Record<string, unknown>[], fee: Fee, memo = ''): StdTx {
   return {
     fee,
     memo,

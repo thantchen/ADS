@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node'
 import * as Bluebird from 'bluebird'
 import * as level from 'level'
-import redis, { Queue } from 'redis'
+import { Queue } from 'redis'
 import * as config from 'config'
 import { ArgumentParser } from 'argparse'
 import * as CryptoJS from 'crypto-js'
@@ -27,8 +27,7 @@ let args
 
 // variables for lp wallet caching
 let lpKey: Key
-let lpAccount
-let isTerminate: boolean = false
+let isTerminate = false
 
 interface QueueElement {
   denom: string
@@ -223,7 +222,6 @@ async function main() {
 
   // Get LP key and query account for account_number and sequence
   lpKey = await keystore.get(terraDB, args.lpName, args.lpPassword)
-  lpAccount = await client.queryAccount(args.lcdAddress, lpKey.address)
 
   await asyncQueueLoop()
 

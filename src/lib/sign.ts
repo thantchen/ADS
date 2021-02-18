@@ -3,9 +3,6 @@ import * as secp256k1 from 'secp256k1'
 
 const HD_PATH = [44, 118, 0, 0, 0]
 
-/* eslint-enable @typescript-eslint/camelcase */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-
 // Transactions often have amino decoded objects in them {type, value}.
 // We need to strip this clutter as we need to sign only the values.
 function prepareSignBytes(jsonTx) {
@@ -41,7 +38,6 @@ type StdSignMsg struct {
   Memo          string      `json:"memo"`
 }
 */
-/* eslint-disable @typescript-eslint/camelcase */
 function createSignMessage(jsonTx, { sequence, account_number, chain_id }) {
   // sign bytes need amount to be an array
   const fee = {

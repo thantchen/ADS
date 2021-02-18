@@ -20,7 +20,18 @@ const ax = axios.create({
   }
 })
 
-export async function queryAccount(lcdAddress, address) {
+interface Coin {
+  amount: string
+  denom: string
+}
+
+export async function queryAccount(lcdAddress, address): Promise<{
+  address: string
+  coins: Coin[]
+  public_key: { type: string; value: string }
+  account_number: string
+  sequence: string
+}> {
   const url = util.format(lcdAddress + ENDPOINT_QUERY_ACCOUNT, address)
   const res = await ax.get(url)
 
@@ -45,7 +56,7 @@ export async function queryTaxRate(lcdAddress) {
 
 // the broadcast body consists of the signed tx and a return type
 // returnType can be block (inclusion in block), async (right away), sync (after checkTx has passed)
-export function createBroadcastBody(tx: StdTx, mode: string = `sync`) {
+export function createBroadcastBody(tx: StdTx, mode = `sync`) {
   if (!['async', 'sync', 'block'].includes(mode)) {
     throw TypeError(`unknown broadcast mode ${mode}`)
   }

@@ -23,7 +23,7 @@ const TEMPURA_QUEUE_NAME = 'lp:tempura:queue'
 
 // variable for storing command line parameters
 let args
-let gracefulShutdownCounter: number = 0
+let gracefulShutdownCounter = 0
 
 process.on('unhandledRejection', err => {
   console.error(err)
