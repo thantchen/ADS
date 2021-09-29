@@ -85,3 +85,4 @@ data/
 
 *.sh
 *wallets.txt
+yarn.lock

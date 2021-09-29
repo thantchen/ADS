@@ -2,7 +2,6 @@ import * as fs from 'fs'
 import * as Bluebird from 'bluebird'
 import * as level from 'level'
 import * as config from 'config'
-import { ArgumentParser } from 'argparse'
 import * as CryptoJS from 'crypto-js'
 import * as validateUUID from 'uuid-validate'
 import * as ProgressBar from 'progress'
@@ -42,18 +41,6 @@ async function loadWallets(): Promise<Set<string>> {
 }
 
 async function main() {
-  const parser = new ArgumentParser({
-    add_help: true,
-    description: 'Collect user wallets'
-  })
-
-  parser.add_argument('--lcd', {
-    help: 'lcd address',
-    dest: 'lcdAddress',
-    required: true
-  })
-
-  const args = parser.parse_args()
   const terraDB = level(config.db.terra.path)
   const wallets = await loadWallets()
   const userIds: string[] = []

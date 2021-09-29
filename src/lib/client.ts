@@ -78,12 +78,16 @@ export async function estimateTax(
     lcdAddress + ENDPOINT_TX_ESTIMATE_FEE,
     JSON.stringify({
       tx,
-      gas_prices: [{ amount: '1.7805', denom: 'ukrw' }],
+      gas_prices: [{ amount: '443.515327', denom: 'ukrw' }],
       gas_adjustment: '1.4'
     })
   )
 
   return data.result
+}
+
+export async function queryTx(lcdAddress: string, txhash: string): Promise<object> {
+  return ax.get(`${lcdAddress}/txs/${txhash}`).then(res => res.data)
 }
 
 // This function throws error when tx has been written (has height) with error
@@ -110,15 +114,15 @@ export async function broadcast(lcdAddress: string, tx: StdTx, mode: string): Pr
   }
 
   const AVERAGE_BLOCK_TIME = 6500
-  const MAX_RETRY_COUNT = 10
+  const MAX_RETRY_COUNT = 30
 
   // Wait for next block
   await Bluebird.delay(AVERAGE_BLOCK_TIME)
 
   for (let i = 0; i < MAX_RETRY_COUNT; i += 1) {
-    const height: string = await ax
-      .get(`${lcdAddress}/txs/${data.txhash}`)
-      .then(({ data: tx }) => {
+    
+    const height: string = await queryTx(lcdAddress, data.txhash)
+      .then(tx => {
         if (tx.code) {
           throw new Error(`successful tx with error: code: ${tx.code}, raw_log: ${tx.raw_log}, hash: ${data.txhash}`)
         }

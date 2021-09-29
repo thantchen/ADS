@@ -29,6 +29,7 @@
     "crypto-js": "^4",
     "debug": "^4.1.1",
     "event-stream": "^4.0.1",
+    "fast-csv": "^4.3.5",
     "ioredis": "^4.10.0",
     "ledger-cosmos-js": "^2.0.2",
     "level": "^6",

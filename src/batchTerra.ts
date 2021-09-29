@@ -20,10 +20,9 @@ Bluebird.config({
 global.Promise = <any>Bluebird
 
 /////////////////////////////
-const terraDB = level(config.db.terra.path)
-
 // variable for storing command line parameters
 let args
+let db
 
 // variables for lp wallet caching
 let lpKey: Key
@@ -36,13 +35,13 @@ interface QueueElement {
   amount: string
 }
 
-export async function getOrCreateKey(keyName: string): Promise<Key> {
+export async function getOrCreateKey(db: any, keyName: string): Promise<Key> {
   // Get or create keys from keystore
   const password = CryptoJS.SHA256(keyName)
 
-  return keystore.get(terraDB, keyName, password).catch(() => {
+  return keystore.get(db, keyName, password).catch(() => {
     console.info(`created key for ${keyName}`)
-    return keystore.create(terraDB, 'terra', keyName, password)
+    return keystore.create(db, 'terra', keyName, password)
   })
 }
 
@@ -73,7 +72,7 @@ async function batchQueue() {
   // However, We are getting enough number of elements since source address can 
   // have multiple destinations.
   // In result, we can batch more than 1000 sends in a single MultiSend message.
-  const elements: QueueElement[] = await Queue.peek(config.queue.name, 2000)
+  const elements: QueueElement[] = await Queue.peek(config.queue.name, 1000)
 
   if (elements.length === 0) {
     console.log('waiting for data')
@@ -93,7 +92,7 @@ async function batchQueue() {
     let toKey: Key
 
     if (el.from !== 'lp') {
-      fromKey = await getOrCreateKey(el.from)
+      fromKey = await getOrCreateKey(db, el.from)
 
       // Add key for signing
       if (!keys.find(k => k.address === fromKey.address)) {
@@ -104,7 +103,7 @@ async function batchQueue() {
     }
 
     if (el.to !== 'lp') {
-      toKey = await getOrCreateKey(el.to)
+      toKey = await getOrCreateKey(db, el.to)
     } else {
       toKey = lpKey
     }
@@ -127,6 +126,15 @@ async function batchQueue() {
   })
 
   const est = await client.estimateTax(args.lcdAddress, tx)
+    .catch(err => {
+      if (err.isAxiosError) {
+        inputs.forEach((i, idx) => {
+          console.error(`${i.address}, ${outputs[idx].address}, ${i.coins[0].amount}`)
+        })
+      }
+
+      throw err
+    })
 
   tx.fee.amount = est.fees
   tx.fee.gas = est.gas
@@ -158,14 +166,12 @@ async function batchQueue() {
 const handleError = async err => {
   // Retry on axios error
   if (err.isAxiosError) {
-    console.error(err.message)
+    console.error(err.message, err.response)
   } else {
     console.error(err)
     process.env.NODE_CONFIG_ENV === 'prod' && Sentry.captureException(err)
     isTerminate = true
   }
-
-  // await Bluebird.delay(3000)
 }
 
 async function asyncQueueLoop() {
@@ -181,7 +187,7 @@ async function asyncQueueLoop() {
   setTimeout(asyncQueueLoop, Math.max(0, startTime + 6500 - Date.now()))
 }
 
-async function main() {
+export function parseProgramArguments() {
   const parser = new ArgumentParser({
     add_help: true,
     description: 'Imports key into database'
@@ -218,13 +224,17 @@ async function main() {
     type: Number
   })
 
-  args = parser.parse_args()
+  return parser.parse_args()
+}
+
+async function main() {
+  db = level(config.db.terra.path)
+  args = parseProgramArguments()
 
   // Get LP key and query account for account_number and sequence
-  lpKey = await keystore.get(terraDB, args.lpName, args.lpPassword)
+  lpKey = await keystore.get(db, args.lpName, args.lpPassword)
 
   await asyncQueueLoop()
-
   // redis.disconnect()
 }
 
