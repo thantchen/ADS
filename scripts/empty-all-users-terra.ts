@@ -5,11 +5,9 @@ import { ArgumentParser } from 'argparse'
 import * as CryptoJS from 'crypto-js'
 import * as validateUUID from 'uuid-validate'
 import * as ProgressBar from 'progress'
+import { LCDClient, MsgMultiSend, Wallet, RawKey, Coin, StdTx } from '@terra-money/terra.js'
 import { chunk, uniqBy } from 'lodash'
 import * as keystore from 'lib/keystore'
-import * as client from 'lib/client'
-import { generateStdTx, generateMultiSend, InOut, Coin } from 'lib/msg'
-import sign from 'lib/sign'
 
 Bluebird.config({
   longStackTraces: true
@@ -54,8 +52,13 @@ async function main() {
 
   const args = parser.parse_args()
   const terraDB = level(config.db.terra.path)
-  const userIds: string[] = []
+  const client = new LCDClient({
+    URL: args.lcdAddress,
+    chainID: args.chainID,
+    gasPrices: '443.515327ukrw'
+  })
 
+  const userIds: string[] = []
   const lpKey = await keystore.get(terraDB, args.lpName, args.lpPassword)
 
   terraDB
@@ -82,10 +85,11 @@ async function main() {
         async key => {
           const password = CryptoJS.SHA256(key)
           const fromKey = await keystore.get(terraDB, key, password)
-          const fromAccount = await client.queryAccount(args.lcdAddress, fromKey.address)
+          const fromAccount = await client.bank.balance(fromKey.address)
+          const coins = fromAccount.toArray()
 
-          if (fromAccount.coins && fromAccount.coins.length) {
-            accounts.push([key, fromAccount.coins])
+          if (coins.length) {
+            accounts.push([key, coins])
           }
 
           bar.tick()
@@ -96,43 +100,40 @@ async function main() {
       console.log(`Found ${accounts.length} accounts with coins`)
       const bar2 = new ProgressBar('[:bar] :percent :rate/sec', { width: 50, total: accounts.length })
 
+      const wallet = new Wallet(client, new RawKey(Buffer.from(lpKey.privateKey, 'hex')))
+
       await Bluebird.mapSeries(chunk(accounts, 99), async accountsChunk => {
-        const inputs: InOut[] = [{ address: lpKey.address, coins: [{ denom: 'ukrw', amount: '1' }] }]
-        const outputs: InOut[] = [{ address: lpKey.address, coins: [{ denom: 'ukrw', amount: '1' }] }]
+        const inputs: MsgMultiSend.Input[] = []
+        const outputs: MsgMultiSend.Output[] = []
         const keys = [lpKey]
+
+        inputs.push(new MsgMultiSend.IO(lpKey.address, '1ukrw'))
+        outputs.push(new MsgMultiSend.IO(lpKey.address, '1ukrw'))
 
         await Bluebird.mapSeries(accountsChunk, async account => {
           const password = CryptoJS.SHA256(account[0])
           const fromKey = await keystore.get(terraDB, account[0], password)
 
-          inputs.push({ address: fromKey.address, coins: account[1] })
-          outputs.push({ address: lpKey.address, coins: account[1] })
+          inputs.push(new MsgMultiSend.IO(fromKey.address, account[1]))
+          outputs.push(new MsgMultiSend.IO(lpKey.address, account[1]))
           keys.push(fromKey)
         })
 
-        const tx = generateStdTx([generateMultiSend(inputs, outputs)], {
-          gas: '0',
-          amount: [{ denom: 'ukrw', amount: '1' }]
-        })
-        const est = await client.estimateTax(args.lcdAddress, tx)
-
-        tx.fee.amount = est.fees
-        tx.fee.gas = est.gas
-
-        tx.signatures = await Bluebird.map(
+        const tx = await wallet.createTx({ msgs: [ new MsgMultiSend(inputs, outputs) ]})
+        const signatures = await Bluebird.map(
           uniqBy(keys, k => k.address),
           async key => {
-            const account = await client.queryAccount(args.lcdAddress, key.address)
+            const account = await client.auth.accountInfo(key.address)
+            const rawKey = new RawKey(Buffer.from(key.privateKey, 'hex'))
 
-            return sign(null, key, tx, {
-              chain_id: args.chainID,
-              account_number: account.account_number,
-              sequence: account.sequence
-            })
+            tx.account_number = account.account_number
+            tx.sequence = account.sequence
+            return rawKey.createSignature(tx)
           }
         )
 
-        await client.broadcast(args.lcdAddress, tx, 'sync')
+        const stdTx = new StdTx(tx.msgs, tx.fee, signatures)
+        await client.tx.broadcastSync(stdTx)
         bar2.tick(accountsChunk.length)
       })
 

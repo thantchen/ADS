@@ -1,16 +1,21 @@
-import * as Bluebird from 'bluebird'
 import * as level from 'level'
 import redis, { Queue } from 'redis'
 import { ArgumentParser } from 'argparse'
 import * as config from 'config'
+import { LCDClient, MsgMultiSend } from '@terra-money/terra.js'
 import { Key } from 'lib/keyUtils'
-import * as client from 'lib/client'
 import { getBatch, getOrCreateKey } from 'batchTerra'
 
 const main = async () => {
   const parser = new ArgumentParser({
     add_help: true,
     description: 'remove latest tx batch'
+  })
+
+  parser.add_argument('--chain-id', {
+    help: 'chain id',
+    dest: 'chainID',
+    required: true
   })
 
   parser.add_argument('--lcd', {
@@ -30,9 +35,22 @@ const main = async () => {
   })
 
   const args = parser.parse_args()
-  const { tx } = await client.queryTx(args.lcdAddress, args.txhash)
-  const inputs = tx.value.msg[0].value.inputs
-  const signatureCount = tx.value.signatures.length
+  const client = new LCDClient({
+    URL: args.lcdAddress,
+    chainID: args.chainID,
+    gasPrices: '443.515327ukrw'
+  })
+
+  const { tx } = await client.tx.txInfo(args.txhash)
+  const msgData = tx.msg[0].toData() as MsgMultiSend.Data
+
+  if (!msgData.type.includes('MultiSend')) {
+    console.log('tx does not have MultiSend message', tx.msg[0].toJSON())
+    process.exit(1)
+  }
+
+  const inputs = msgData.value.inputs
+  const signatureCount = tx.signatures.length
 
   console.log(`tx cotains ${inputs.length} MultiSend`)
 
@@ -79,6 +97,9 @@ const main = async () => {
   } else {
     console.log('This is a dry run. add --execute parameter')
   }
+
+  await terraDB.close()
+  await redis.quit()
 }
 
 main().catch(console.error)

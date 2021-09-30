@@ -4,10 +4,8 @@ import * as config from 'config'
 import { ArgumentParser } from 'argparse'
 import * as CryptoJS from 'crypto-js'
 import * as keystore from 'lib/keystore'
-import * as client from 'lib/client'
-import { generateStdTx, generateMultiSend, InOut } from 'lib/msg'
-import sign from 'lib/sign'
 import { Key } from 'lib/keyUtils'
+import { LCDClient, MsgMultiSend, Wallet, RawKey, StdTx } from '@terra-money/terra.js'
 
 Bluebird.config({
   longStackTraces: true
@@ -22,7 +20,7 @@ process.on('unhandledRejection', err => {
 
 async function main() {
   const parser = new ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Vacuum wallets'
   })
 
@@ -57,47 +55,51 @@ async function main() {
 
   const args = parser.parse_args()
   const terraDB = level(config.db.terra.path)
-  const lpKey = await keystore.get(terraDB, args.lpName, args.lpPassword)
-  const lpAccount = await client.queryAccount(args.lcdAddress, lpKey.address)
+  const client = new LCDClient({
+    URL: args.lcdAddress,
+    chainID: args.chainID,
+    gasPrices: '443.515327ukrw'
+  })
+
   const userKey = await keystore.get(terraDB, args.userId, CryptoJS.SHA256(args.userId))
-  const userAccount = await client.queryAccount(args.lcdAddress, userKey.address)
+  const userCoins = (await client.bank.balance(userKey.address)).toArray()
 
-  const inputs: InOut[] = [{ address: lpKey.address, coins: [{ denom: 'ukrw', amount: '1' }] }]
-  const outputs: InOut[] = [{ address: lpKey.address, coins: [{ denom: 'ukrw', amount: '1' }] }]
-
-  const keys: [Key, string, string][] = [[lpKey, lpAccount.account_number, lpAccount.sequence]]
-
-  if (userAccount.coins.length !== 0) {
-    inputs.push({ address: userKey.address, coins: userAccount.coins });
-    outputs.push({ address: lpKey.address, coins: userAccount.coins });
-    keys.push([userKey, userAccount.account_number, userAccount.sequence])
-  }
-
-  if (inputs.length === 1) {
+  if (userCoins.length === 0) {
+    console.log(`${userKey.address} does not have any coins`)
     return
   }
 
-  const tx = generateStdTx([generateMultiSend(inputs, outputs)], {
-    gas: '0',
-    amount: [{ denom: 'ukrw', amount: '1' }]
-  })
+  const lpKey = await keystore.get(terraDB, args.lpName, args.lpPassword)
+  const lpAccount = await client.auth.accountInfo(lpKey.address)
+  const userAccount = await client.auth.accountInfo(userKey.address)
 
-  const est = await client.estimateTax(args.lcdAddress, tx)
+  const inputs: MsgMultiSend.IO[] = [
+    new MsgMultiSend.IO(lpKey.address, '1ukrw'),
+    new MsgMultiSend.IO(userKey.address, userCoins)
+  ]
 
-  tx.fee.amount = est.fees
-  tx.fee.gas = est.gas
+  const outputs: MsgMultiSend.IO[] = [
+    new MsgMultiSend.IO(lpKey.address, '1ukrw'),
+    new MsgMultiSend.IO(lpKey.address, userCoins)
+  ]
 
-  for (let i = 0; i < keys.length; i += 1) {
-    const key = keys[i]
+  const keys: [Key, number, number][] = [
+    [lpKey, lpAccount.account_number, lpAccount.sequence],
+    [userKey, userAccount.account_number, userAccount.sequence]
+  ]
 
-    tx.signatures[i] = await sign(null, key[0], tx, {
-      chain_id: args.chainID,
-      account_number: key[1],
-      sequence: key[2]
-    })
-  }
+  const wallet = new Wallet(client, new RawKey(Buffer.from(lpKey.privateKey, 'hex')))
+  const tx = await wallet.createTx({ msgs: [ new MsgMultiSend(inputs, outputs) ]})
+  const signatures = await Promise.all(keys.map(key => {
+    const rawKey = new RawKey(Buffer.from(key[0].privateKey, 'hex'))
 
-  await client.broadcast(args.lcdAddress, tx, 'sync')
+    tx.account_number = key[1]
+    tx.sequence = key[2]
+    return rawKey.createSignature(tx)
+  }))
+  
+  const stdTx = new StdTx(tx.msgs, tx.fee, signatures)
+  console.log(await client.tx.broadcastSync(stdTx))
 }
 
 main().catch(console.error)

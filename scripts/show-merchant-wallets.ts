@@ -6,7 +6,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as Bluebird from 'bluebird'
 import { Big } from 'big.js'
-import * as client from 'lib/client'
+import { ArgumentParser } from 'argparse'
+import { LCDClient } from '@terra-money/terra.js'
 
 Bluebird.config({
   longStackTraces: true
@@ -189,6 +190,30 @@ function loadWallets(): Promise<[ string, string ][]> {
 
 
 async function main() {
+  const parser = new ArgumentParser({
+    add_help: true,
+    description: 'Vacuum wallets'
+  })
+
+  parser.add_argument('--chain-id', {
+    help: 'chain id',
+    dest: 'chainID',
+    required: true
+  })
+
+  parser.add_argument('--lcd', {
+    help: 'lcd address',
+    dest: 'lcdAddress',
+    required: true
+  })
+
+  const args = parser.parse_args()
+  const client = new LCDClient({
+    URL: args.lcdAddress,
+    chainID: args.chainID,
+    gasPrices: '443.515327ukrw'
+  })
+
   const wallets = await loadWallets()
   console.log('Unknown merchants')
 
@@ -201,9 +226,9 @@ async function main() {
 
   const merchants2 = await Bluebird.mapSeries(merchants, async merchant => {
     //  const key = await keystore.get(terraDB, merchant[0], CryptoJS.SHA256(merchant[0]))
-    const account = await client.queryAccount('http://localhost:2317', merchant[1])
+    const balance = (await client.bank.balance(merchant[1])).toArray()
 
-    return [ ...merchant, new Big(account.coins.length ? account.coins[0].amount : 0).div(1000000) ]
+    return [ ...merchant, new Big(balance.length ? balance[0].amount.toString() : 0).div(1000000) ]
   }) as [string, string, string, Big][]
 
   merchants2.sort((a, b) => +b[3].minus(a[3])).forEach(m => {

@@ -1,53 +1,55 @@
 import * as level from 'level'
-import { generateStdTx, generateMultiSend } from 'lib/msg'
-import sign from 'lib/sign'
+import { LCDClient, MsgMultiSend, Wallet, RawKey, isTxError } from '@terra-money/terra.js'
 import * as keystore from 'lib/keystore'
-import * as client from 'lib/client'
 
 const db = level('data/terra')
 
 describe('terra', () => {
-  const lcdAddress = 'https://vodka-lcd.terra.dev'
-  const chainId = 'vodka'
+  const client = new LCDClient({
+    URL: 'http://localhost:1317',
+    chainID: 'localterra',
+    gasPrices: '178.05ukrw'
+  })
+
+  afterAll(() => {
+    db.close()
+  })
 
   test('MultiSend', async () => {
-    const coins = [{ denom: 'ukrw', amount: '10000' }]
-    const tx = generateStdTx(
-      [
-        generateMultiSend(
-          [
-            { address: 'terra12c5s58hnc3c0pjr5x7u68upsgzg2r8fwq5nlsy', coins },
-            { address: 'terra12c5s58hnc3c0pjr5x7u68upsgzg2r8fwq5nlsy', coins },
-            { address: 'terra12c5s58hnc3c0pjr5x7u68upsgzg2r8fwq5nlsy', coins },
-            { address: 'terra12c5s58hnc3c0pjr5x7u68upsgzg2r8fwq5nlsy', coins },
-            { address: 'terra12c5s58hnc3c0pjr5x7u68upsgzg2r8fwq5nlsy', coins }
-          ],
-          [
-            { address: 'terra1uylymy3tdj5vfjvmls4l575lmfjpn7jsfdfrhw', coins },
-            { address: 'terra1m96psu5lhr834756f3a7gkrglgn8h9dwgsqa85', coins },
-            { address: 'terra1ywva5zjqa7cteqjutrv28yr3fd37dvp8xng2xp', coins },
-            { address: 'terra16llntrxj9s2qmtkt9wjsrsm077kyededhawky9', coins },
-            { address: 'terra1hczlvtjness3dapxtzv29c656rg4d24nm4mec4', coins }
-          ]
-        )
-      ],
-      { gas: '300000', amount: [{ amount: '4500', denom: 'ukrw' }] },
-      'Sent by lp server'
-    )
+    const coins = '10000ukrw'
 
-    const key = await keystore.get(db, 'faucet', '12345678')
-    const account = await client.queryAccount(lcdAddress, key.address)
+    const key = await keystore.get(db, 'test1', '12345678')
+    const rawKey = new RawKey(Buffer.from(key.privateKey, 'hex'))
+    const wallet = new Wallet(client, rawKey)
 
-    tx.signatures.push(
-      await sign(null, key, tx, {
-        chain_id: chainId,
-        account_number: account.account_number,
-        sequence: account.sequence
+    const result = await wallet
+      .createAndSignTx({
+        msgs: [
+          new MsgMultiSend(
+            [
+              new MsgMultiSend.Input('terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v', coins),
+              new MsgMultiSend.Input('terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v', coins),
+              new MsgMultiSend.Input('terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v', coins),
+              new MsgMultiSend.Input('terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v', coins),
+              new MsgMultiSend.Input('terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v', coins)
+            ],
+            [
+              new MsgMultiSend.Output('terra1vltyder4j8ulc8xdnd2k8fl7w3qhm63k2wek5n', coins),
+              new MsgMultiSend.Output('terra1gesvrhvljrlr54r4dw0gmktalnd5md0eg09gpr', coins),
+              new MsgMultiSend.Output('terra154wrc4xh7yrw7lc9u3qgm7wmkvu24j662jjc3v', coins),
+              new MsgMultiSend.Output('terra1tknree79u9h3v92mx2yrm98acpff7hmywuqh35', coins),
+              new MsgMultiSend.Output('terra1vltyder4j8ulc8xdnd2k8fl7w3qhm63k2wek5n', coins)
+            ]
+          )
+        ],
+        memo: 'Sent by lp server'
       })
-    )
+      .then(tx => client.tx.broadcast(tx))
 
-    const height = await client.broadcast(lcdAddress, tx, 'sync')
+    if (isTxError(result)) {
+      throw new Error('tx failed')
+    }
 
-    expect(height).toBeGreaterThan(0)
+    expect(result.height).toBeGreaterThan(0)
   }, 30000)
 })

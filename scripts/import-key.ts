@@ -39,7 +39,6 @@ async function main() {
   const mnemonic = await promptly.prompt(`Enter bip39 mnemonic for ${args.key}: `)
 
   const db = level(config.db[args.chain_name].path)
-
   await keystore.create(db, args.chain_name, args.key, password, mnemonic)
 
   await db.close()
